@@ -93,7 +93,7 @@ export class Channel {
       }
     } finally {
       // Polling and queued delivery resume after failures or Worker restarts.
-      await this.ctx.storage.setAlarm(Date.now() + 60000);
+      await this.ctx.storage.setAlarm(Date.now() + 10 * 60 * 1000);
     }
   }
   private channelHeaders(): Record<string, string> {

@@ -6,7 +6,7 @@
 	"vars": { "GITHUB_REPOSITORY": "themadorg/madmail", "PIPELINE_NOTIFICATIONS": "failures" },
 	"durable_objects": { "bindings": [{ "name": "NOTIFICATIONS", "class_name": "Channel" }] },
 	"migrations": [{ "tag": "v1", "new_sqlite_classes": ["Channel"] }],
-	"triggers": { "crons": ["* * * * *"] },
+	"triggers": { "crons": ["*/10 * * * *"] },
 	"observability": {
 		"enabled": true,
 	},

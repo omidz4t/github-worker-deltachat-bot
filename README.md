@@ -53,7 +53,7 @@ Protocol references: [WebIMAP/WebSMTP](https://madmail.chat/docs/TDD/10-webimap)
 
 ## GitHub → Delta Chat channel
 
-The notification channel is **Madmail GitHub**. A SQLite Durable Object stores subscribers, inbox position, the last five channel messages, pending notifications, and processed GitHub delivery IDs. A one-minute alarm and cron trigger process SecureJoin subscription requests and retry queued deliveries. Requests using v3 or compatible legacy SecureJoin are supported. Subscribers receive signed, encrypted broadcast messages without seeing other subscriber addresses. Signed leave requests remove the sender's own subscription.
+The notification channel is **Madmail GitHub**. A SQLite Durable Object stores subscribers, inbox position, the last five channel messages, pending notifications, and processed GitHub delivery IDs. A ten-minute alarm and cron trigger process SecureJoin subscription requests and retry queued deliveries. Requests using v3 or compatible legacy SecureJoin are supported. Subscribers receive signed, encrypted broadcast messages without seeing other subscriber addresses. Signed leave requests remove the sender's own subscription.
 
 The original verified contact is enrolled by `bun run channel bootstrap`; other people join through the channel invitation. To inspect or process the channel:
 

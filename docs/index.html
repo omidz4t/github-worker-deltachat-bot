@@ -76,7 +76,7 @@ bun run channel info</code></pre>
       Content type: <code>application/json</code><br>
       Secret: the value in local <code>.env.github-webhook-secret</code><br>
       Select your events; enable SSL verification and Active.</p>
-      <p>Check delivery with <code>bun run webhook:test</code>. Join requests are checked every minute.</p>
+      <p>Check delivery with <code>bun run webhook:test</code>. Join requests are checked every 10 minutes.</p>
     </li>
   </ol>
   <footer>Credentials stay in ignored local files and Cloudflare secrets. <a href="https://github.com/omidz4t/github-worker-deltachat-bot">Source &amp; full documentation</a> · <a href="https://github.com/omidz4t/github-worker-deltachat-bot/blob/main/LICENSE">MIT license</a></footer>
