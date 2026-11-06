@@ -46,6 +46,13 @@ export class Channel {
       await this.ctx.storage.setAlarm(Date.now());
       return Response.json({ status: duplicate ? 'duplicate' : 'queued' }, { status: 202 });
     }
+    if (path === '/retry') {
+      const { uid } = await request.json() as { uid: number };
+      if (!Number.isSafeInteger(uid) || uid < 1) return Response.json({ error: 'Invalid message UID' }, { status: 400 });
+      const { body } = await mailRequest<{ body: string }>(this.env, `/webimap/message/${uid}`, {}, webimapFetch);
+      await this.handleMessage(body);
+      return Response.json({ status: 'reprocessed' });
+    }
     if (path === '/poll') {
       await this.ctx.storage.setAlarm(Date.now());
       return Response.json({ status: 'scheduled' });
@@ -165,7 +172,7 @@ export class Channel {
     const key = await this.publicKey(inner) ?? await this.publicKey(outer); if (!key) return;
     const verified = await decryptMail(raw, { privateKey: this.env.BOT_PRIVATE_KEY, publicKey: key.armor() });
     contact.publicKey = key.armor(); contact.fingerprint = key.getFingerprint().toUpperCase();
-    if (h(verified.inner, 'secure-join') === 'vc-request-with-auth'
+    if (['vc-request-with-auth', 'vg-request-with-auth'].includes(h(verified.inner, 'secure-join') ?? '')
       && h(verified.inner, 'secure-join-auth') === this.config.auth
       && h(verified.inner, 'secure-join-fingerprint')?.toUpperCase() === contact.fingerprint) {
       const gossip = verified.inner.headers.filter(header => header.key === 'autocrypt-gossip');

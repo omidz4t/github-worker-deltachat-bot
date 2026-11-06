@@ -96,7 +96,7 @@ BOT_LOGO="https://madmail.chat/favicon.png"
 CHANNEL_LOGO="https://madmail.chat/favicon.png"
 ```
 
-The logos can be HTTPS URLs or local PNG/JPEG paths (maximum 20 KiB each). Defaults use the official Madmail icon. Setup downloads/reads each logo once and stores the actual image as base64 in the `BOT_LOGO` and `CHANNEL_LOGO` Cloudflare secrets. The Worker does not fetch an image for each notification. Names are stored as `BOT_NAME` and `CHANNEL_NAME` secrets. Profile images travel inside signed, encrypted `Chat-User-Avatar` and `Chat-Group-Avatar` headers.
+The logos can be HTTPS URLs or local PNG/JPEG paths (maximum 3.75 KiB each). Defaults use the official Madmail icon. Setup downloads/reads each logo once and stores the actual image as base64 in the `BOT_LOGO` and `CHANNEL_LOGO` Cloudflare secrets. The Worker does not fetch an image for each notification. Names are stored as `BOT_NAME` and `CHANNEL_NAME` secrets. Profile images travel inside signed, encrypted `Chat-User-Avatar` and `Chat-Group-Avatar` headers.
 
 To update an existing bot/channel without replacing its keys, channel ID, invitation credentials, or subscribers:
 

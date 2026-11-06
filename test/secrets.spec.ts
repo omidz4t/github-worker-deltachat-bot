@@ -5,5 +5,6 @@ it('uploads the channel and contact as distinct secrets and rejects missing conf
   const secrets = buildSecrets(state);
   expect(JSON.parse(secrets.CONTACT)).toEqual(state.CONTACT);
   expect(JSON.parse(secrets.CHANNEL_CONFIG)).toEqual(state.CHANNEL_CONFIG);
+  expect(() => buildSecrets({ ...state, BOT_LOGO: 'A'.repeat(5124) })).toThrow('secret limit');
   expect(() => buildSecrets({ ...state, CHANNEL_CONFIG: state.CONTACT })).toThrow('Invalid channel configuration');
 });

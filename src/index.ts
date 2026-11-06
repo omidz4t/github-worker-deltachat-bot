@@ -23,8 +23,14 @@ export default {
     const path = new URL(request.url).pathname;
     if (path === '/' && request.method === 'GET') return Response.json({ message: 'Hello World!' });
     if (path === '/github/webhook') return githubWebhook(request, env);
-    if (path === '/channel' || path === '/channel/poll') {
+    if (path === '/channel' || path === '/channel/poll' || path === '/channel/retry') {
       if (!env.API_TOKEN || request.headers.get('Authorization') !== `Bearer ${env.API_TOKEN}`) return Response.json({ error: 'Unauthorized' }, { status: 401 });
+      if (path === '/channel/retry') {
+        if (request.method !== 'POST') return new Response('Use POST', { status: 405 });
+        const body = await readBounded(request, 256);
+        if (!body) return new Response('Request too large', { status: 413 });
+        return channel(env).fetch('https://channel/retry', { method: 'POST', body: new TextDecoder().decode(body) });
+      }
       const target = path === '/channel/poll' && request.method === 'POST' ? '/poll' : request.method === 'POST' ? '/bootstrap' : request.method === 'GET' ? '/info' : '';
       if (!target) return new Response('Method not allowed', { status: 405 });
       return channel(env).fetch(`https://channel${target}`, { method: target === '/info' ? 'GET' : 'POST' });

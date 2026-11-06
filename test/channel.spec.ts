@@ -15,7 +15,7 @@ class Storage {
   async setAlarm() {}
 }
 describe('Delta Chat broadcast protocol', () => {
-  it('authenticates a v3 subscriber, sends membership, and broadcasts once for duplicate delivery IDs', async () => {
+  it.each(['vc-request-with-auth', 'vg-request-with-auth'])('authenticates %s, sends membership, and broadcasts once for duplicate delivery IDs', async (step) => {
     const bot = await openpgp.generateKey({ type: 'ecc', curve: 'curve25519Legacy', userIDs: [{ name: 'Bot' }], config: pgpConfig });
     const peer = await openpgp.generateKey({ type: 'ecc', curve: 'curve25519Legacy', userIDs: [{ name: 'Subscriber' }], config: pgpConfig });
     const botKey = await openpgp.readKey({ armoredKey: bot.publicKey });
@@ -38,7 +38,7 @@ describe('Delta Chat broadcast protocol', () => {
     expect(reply.inner.headers.find(h => h.key === 'secure-join')?.value).toBe('vc-pubkey');
     expect((await storage.list({ prefix: 'subscriber:' })).size).toBe(0);
     const auth = await encryptedMail({ from: 'peer@example.org', contact: target, text: 'Secure-Join', privateKey: peer.privateKey, publicKey: peer.publicKey,
-      extraHeaders: { 'Secure-Join': 'vc-request-with-auth', 'Secure-Join-Auth': config.auth, 'Secure-Join-Fingerprint': peerKey.getFingerprint().toUpperCase() } });
+      extraHeaders: { 'Secure-Join': step, 'Secure-Join-Auth': config.auth, 'Secure-Join-Fingerprint': peerKey.getFingerprint().toUpperCase() } });
     inbox.push({ uid: 2, body: auth.raw }); await actor.alarm();
     expect((await storage.list({ prefix: 'subscriber:' })).size).toBe(1);
     const membership = await decryptMail(sent[1], { privateKey: peer.privateKey, publicKey: bot.publicKey });

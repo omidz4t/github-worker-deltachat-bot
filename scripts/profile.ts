@@ -9,14 +9,14 @@ export async function readLogo(source: string): Promise<string> {
     while (true) {
       const { done, value } = await reader.read(); if (done) break;
       length += value.length;
-      if (length > 20480) { await reader.cancel(); throw new Error('Logo exceeds 20 KiB; use a smaller PNG or JPEG'); }
+      if (length > 3840) { await reader.cancel(); throw new Error('Logo exceeds 3.75 KiB; use a smaller PNG or JPEG'); }
       chunks.push(value);
     }
     bytes = new Uint8Array(length); let offset = 0;
     for (const chunk of chunks) { bytes.set(chunk, offset); offset += chunk.length; }
   } else {
     const file = Bun.file(source);
-    if (file.size > 20480) throw new Error('Logo exceeds 20 KiB; use a smaller PNG or JPEG');
+    if (file.size > 3840) throw new Error('Logo exceeds 3.75 KiB; use a smaller PNG or JPEG');
     bytes = new Uint8Array(await file.arrayBuffer());
   }
   const encoded = Buffer.from(bytes).toString('base64'); avatarHeader(encoded); return encoded;

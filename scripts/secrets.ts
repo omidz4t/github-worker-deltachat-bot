@@ -10,7 +10,10 @@ export function buildSecrets(state: Record<string, unknown>): Record<string, str
       result[name] = JSON.stringify(value);
     } else {
       if (typeof value !== 'string' || !value) throw new Error(`Missing ${name}`);
-      if (name === 'BOT_LOGO' || name === 'CHANNEL_LOGO') avatarHeader(value);
+      if (name === 'BOT_LOGO' || name === 'CHANNEL_LOGO') {
+        if (value.length > 5120) throw new Error(`${name} exceeds Cloudflare's 5 KiB secret limit; use an image under 3.75 KiB`);
+        avatarHeader(value);
+      }
       if (name === 'BOT_NAME' || name === 'CHANNEL_NAME') profileName(value, value);
       result[name] = value;
     }
