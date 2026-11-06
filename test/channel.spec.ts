@@ -12,7 +12,9 @@ class Storage {
   async delete(key: string) { this.values.delete(key); }
   async list<T>({ prefix }: { prefix: string }) { return new Map([...this.values].filter(([key]) => key.startsWith(prefix))) as Map<string, T>; }
   async transaction<T>(fn: (storage: Storage) => Promise<T>) { return fn(this); }
-  async setAlarm() {}
+  nextAlarm: number | null = null;
+  async getAlarm() { return this.nextAlarm; }
+  async setAlarm(value: number) { this.nextAlarm = value; }
 }
 describe('Delta Chat broadcast protocol', () => {
   it.each(['vc-request-with-auth', 'vg-request-with-auth'])('authenticates %s, sends membership, and broadcasts once for duplicate delivery IDs', async (step) => {
@@ -33,13 +35,13 @@ describe('Delta Chat broadcast protocol', () => {
     const password = `securejoin/${config.fingerprint}/${config.auth}`;
     const target = { email: env.EMAIL_USERNAME, name: 'Bot', fingerprint: config.fingerprint, auth: '', inviteNumber: '', publicKey: bot.publicKey };
     const request = await encryptedMail({ from: 'peer@example.org', contact: target, text: 'Secure-Join', password, extraHeaders: { 'Secure-Join': 'vc-request-pubkey', 'Secure-Join-Auth': config.auth } });
-    inbox = [{ uid: 1, body: request.raw }]; await actor.alarm();
+    inbox = [{ uid: 1, body: request.raw }]; await actor.fetch(new Request('https://channel/poll')); await actor.alarm();
     const reply = await decryptMail(sent[0], { password, publicKey: bot.publicKey });
     expect(reply.inner.headers.find(h => h.key === 'secure-join')?.value).toBe('vc-pubkey');
     expect((await storage.list({ prefix: 'subscriber:' })).size).toBe(0);
     const auth = await encryptedMail({ from: 'peer@example.org', contact: target, text: 'Secure-Join', privateKey: peer.privateKey, publicKey: peer.publicKey,
       extraHeaders: { 'Secure-Join': step, 'Secure-Join-Auth': config.auth, 'Secure-Join-Fingerprint': peerKey.getFingerprint().toUpperCase() } });
-    inbox.push({ uid: 2, body: auth.raw }); await actor.alarm();
+    inbox.push({ uid: 2, body: auth.raw }); await actor.fetch(new Request('https://channel/poll')); await actor.alarm();
     expect((await storage.list({ prefix: 'subscriber:' })).size).toBe(1);
     const membership = await decryptMail(sent[1], { privateKey: peer.privateKey, publicKey: bot.publicKey });
     expect(membership.inner.headers.find(h => h.key === 'chat-broadcast-secret')?.value).toBe(config.secret);
@@ -47,7 +49,7 @@ describe('Delta Chat broadcast protocol', () => {
     const enqueue = () => actor.fetch(new Request('https://channel/enqueue', { method: 'POST', body: JSON.stringify({ id: 'delivery-1', text: 'Commit pushed' }) }));
     expect(await (await enqueue()).json()).toEqual({ status: 'queued' });
     expect(await (await enqueue()).json()).toEqual({ status: 'duplicate' });
-    await actor.alarm(); await actor.alarm();
+    await actor.fetch(new Request('https://channel/poll')); await actor.alarm(); await actor.fetch(new Request('https://channel/poll')); await actor.alarm();
     expect(sent).toHaveLength(3);
     const notification = await decryptMail(sent[2], { password: config.secret, publicKey: bot.publicKey });
     expect(notification.inner.text?.trim()).toBe('Commit pushed');
@@ -57,7 +59,7 @@ describe('Delta Chat broadcast protocol', () => {
     // A signed but unauthenticated request cannot add a subscriber.
     const wrong = await encryptedMail({ from: 'intruder@example.org', contact: target, text: 'Secure-Join', privateKey: peer.privateKey, publicKey: peer.publicKey,
       extraHeaders: { 'Secure-Join': 'vc-request-with-auth', 'Secure-Join-Auth': 'wrong', 'Secure-Join-Fingerprint': peerKey.getFingerprint().toUpperCase() } });
-    inbox.push({ uid: 3, body: wrong.raw }); await actor.alarm();
+    inbox.push({ uid: 3, body: wrong.raw }); await actor.fetch(new Request('https://channel/poll')); await actor.alarm();
     expect(sent).toHaveLength(3);
     env.BOT_NAME = 'Renamed bot'; env.CHANNEL_NAME = 'Renamed channel';
     env.BOT_LOGO = 'iVBORw0KGgo='; env.CHANNEL_LOGO = '/9j/';
@@ -71,4 +73,23 @@ describe('Delta Chat broadcast protocol', () => {
     expect(profile.inner.headers.find(h => h.key === 'chat-list-id')?.value).toBe(`Renamed channel <${config.id}>`);
     expect((await storage.list({ prefix: 'subscriber:' })).size).toBe(1);
   });
+});
+
+it('uses the configured interval without extra watchdog polls or postponing checks', async () => {
+  const clock = vi.spyOn(Date, 'now'); let now = 1000000; clock.mockImplementation(() => now);
+  try {
+    const storage = new Storage();
+    const env = { SUBSCRIBER_POLL_MINUTES: '10', CHANNEL_CONFIG: JSON.stringify({ id: 'id', name: 'Channel', secret: 'secret', inviteUrl: 'https://example.org', sinceUid: 0 }), WEBIMAP_HOSTNAME: 'https://mail.example.org' } as ChatmailEnv;
+    const actor = new Channel({ storage } as unknown as DurableObjectState, env);
+    vi.mocked(webimapFetch).mockReset().mockImplementation(async () => Response.json([]));
+    await actor.alarm(); expect(webimapFetch).toHaveBeenCalledTimes(1);
+    const due = now + 600000; expect(storage.nextAlarm).toBe(due);
+    now += 60000; await actor.alarm(); expect(webimapFetch).toHaveBeenCalledTimes(1); expect(storage.nextAlarm).toBe(due);
+    await actor.fetch(new Request('https://channel/ensure-alarm')); expect(storage.nextAlarm).toBe(due);
+    now = due; await actor.alarm(); expect(webimapFetch).toHaveBeenCalledTimes(2);
+    env.SUBSCRIBER_POLL_MINUTES = '2';
+    await actor.fetch(new Request('https://channel/ensure-alarm')); expect(storage.nextAlarm).toBe(now + 120000);
+    now += 120000; await actor.alarm(); expect(webimapFetch).toHaveBeenCalledTimes(3);
+    now += 1000; await actor.fetch(new Request('https://channel/poll')); await actor.alarm(); expect(webimapFetch).toHaveBeenCalledTimes(4);
+  } finally { clock.mockRestore(); }
 });

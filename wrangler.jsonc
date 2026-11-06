@@ -3,7 +3,7 @@
 	"name": "github-worker-deltachat-bot",
 	"main": "src/index.ts",
 	"compatibility_date": "2026-11-06",
-	"vars": { "GITHUB_REPOSITORY": "themadorg/madmail", "PIPELINE_NOTIFICATIONS": "failures" },
+	"vars": { "GITHUB_REPOSITORY": "themadorg/madmail", "PIPELINE_NOTIFICATIONS": "failures", "SUBSCRIBER_POLL_MINUTES": "10" },
 	"durable_objects": { "bindings": [{ "name": "NOTIFICATIONS", "class_name": "Channel" }] },
 	"migrations": [{ "tag": "v1", "new_sqlite_classes": ["Channel"] }],
 	"triggers": { "crons": ["*/10 * * * *"] },

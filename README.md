@@ -53,7 +53,7 @@ Protocol references: [WebIMAP/WebSMTP](https://madmail.chat/docs/TDD/10-webimap)
 
 ## GitHub → Delta Chat channel
 
-The notification channel is **Madmail GitHub**. A SQLite Durable Object stores subscribers, inbox position, the last five channel messages, pending notifications, and processed GitHub delivery IDs. A ten-minute alarm and cron trigger process SecureJoin subscription requests and retry queued deliveries. Requests using v3 or compatible legacy SecureJoin are supported. Subscribers receive signed, encrypted broadcast messages without seeing other subscriber addresses. Signed leave requests remove the sender's own subscription.
+The notification channel is **Madmail GitHub**. A SQLite Durable Object stores subscribers, inbox position, the last five channel messages, pending notifications, and processed GitHub delivery IDs. A configurable alarm processes SecureJoin subscription requests and retry queued deliveries. Requests using v3 or compatible legacy SecureJoin are supported. Subscribers receive signed, encrypted broadcast messages without seeing other subscriber addresses. Signed leave requests remove the sender's own subscription.
 
 The original verified contact is enrolled by `bun run channel bootstrap`; other people join through the channel invitation. To inspect or process the channel:
 
@@ -159,3 +159,9 @@ When the secret is present, it replaces `PIPELINE_NOTIFICATIONS` entirely. Witho
 ### Compressed configuration
 
 The configurator exports `gz:` followed by gzip-compressed, base64url-encoded JSON. The Worker automatically detects it; existing plain JSON secrets continue to work. Base64 alone makes JSON larger, so compression happens first. Use **Copy compressed secret** or **Download secret** on the config page. You can import either format back into the editor. Compressed values must fit the 5 KiB secret limit; decompressed configurations are limited to 64 KiB. Larger readable JSON can therefore fit in a single compressed secret.
+
+## Subscriber polling interval
+
+Set the plain Cloudflare variable `SUBSCRIBER_POLL_MINUTES` (1–1440; default `10`) in `wrangler.jsonc` or Worker Settings → Variables and Secrets. Deploy the variable change. The next scheduler wake-up applies it.
+
+The Durable Object alarm controls inbox polling. The ten-minute cron is a watchdog that restores or adjusts alarms; it does not force extra inbox checks. GitHub notifications still process immediately, without postponing the next subscriber check. `bun run channel poll` forces an immediate manual check. This setting is separate from the notification JSON secret.

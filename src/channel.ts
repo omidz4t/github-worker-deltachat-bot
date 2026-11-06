@@ -1,3 +1,4 @@
+import { subscriberPollMs } from './polling';
 import { avatarHeader } from './profile';
 import * as openpgp from 'openpgp';
 import PostalMime, { type Email } from 'postal-mime';
@@ -24,7 +25,7 @@ export class Channel {
     if (path === '/info') {
       const subscribers = await this.ctx.storage.list<Contact>({ prefix: 'subscriber:' });
       const jobs = await this.ctx.storage.list<Job>({ prefix: 'job:' });
-      return Response.json({ name: this.config.name, inviteUrl: this.config.inviteUrl, subscribers: subscribers.size, pendingNotifications: [...jobs.values()].filter(job => job.status === 'queued').length, sentNotifications: [...jobs.values()].filter(job => job.status === 'sent').length });
+      return Response.json({ name: this.config.name, subscriberPollMinutes: subscriberPollMs(this.env.SUBSCRIBER_POLL_MINUTES) / 60000, inviteUrl: this.config.inviteUrl, subscribers: subscribers.size, pendingNotifications: [...jobs.values()].filter(job => job.status === 'queued').length, sentNotifications: [...jobs.values()].filter(job => job.status === 'sent').length });
     }
     if (path === '/bootstrap') {
       if (!await this.ctx.storage.get(`bootstrapped:${this.config.id}`)) {
@@ -53,7 +54,15 @@ export class Channel {
       await this.handleMessage(body);
       return Response.json({ status: 'reprocessed' });
     }
+    if (path === '/ensure-alarm') {
+      const next = await this.ctx.storage.getAlarm();
+      const latest = Date.now() + subscriberPollMs(this.env.SUBSCRIBER_POLL_MINUTES);
+      if (next === null) await this.ctx.storage.setAlarm(Date.now());
+      else if (next > latest) await this.ctx.storage.setAlarm(latest);
+      return Response.json({ status: 'scheduled' });
+    }
     if (path === '/poll') {
+      await this.ctx.storage.put('forceSubscriberPoll', true);
       await this.ctx.storage.setAlarm(Date.now());
       return Response.json({ status: 'scheduled' });
     }
@@ -61,7 +70,13 @@ export class Channel {
   }
   async alarm(): Promise<void> {
     try {
-      await this.poll();
+      const lastPoll = await this.ctx.storage.get<number>('lastSubscriberPollAt');
+      const force = await this.ctx.storage.get<boolean>('forceSubscriberPoll');
+      if (force || lastPoll === undefined || Date.now() >= lastPoll + subscriberPollMs(this.env.SUBSCRIBER_POLL_MINUTES)) {
+        await this.poll();
+        await this.ctx.storage.put('lastSubscriberPollAt', Date.now());
+        await this.ctx.storage.delete('forceSubscriberPoll');
+      }
       await this.syncProfile();
       const jobs = await this.ctx.storage.list<Job>({ prefix: 'job:' });
       let count = 0;
@@ -93,7 +108,10 @@ export class Channel {
       }
     } finally {
       // Polling and queued delivery resume after failures or Worker restarts.
-      await this.ctx.storage.setAlarm(Date.now() + 10 * 60 * 1000);
+      const interval = subscriberPollMs(this.env.SUBSCRIBER_POLL_MINUTES);
+      const lastPoll = await this.ctx.storage.get<number>('lastSubscriberPollAt');
+      const next = (lastPoll ?? 0) + interval;
+      await this.ctx.storage.setAlarm(next > Date.now() ? next : Date.now() + interval);
     }
   }
   private channelHeaders(): Record<string, string> {

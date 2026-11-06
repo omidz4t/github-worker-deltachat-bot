@@ -15,6 +15,7 @@ export interface ChatmailEnv extends MailConfig {
   API_TOKEN: string;
   GITHUB_WEBHOOK_SECRET: string;
   GITHUB_REPOSITORY: string;
+  SUBSCRIBER_POLL_MINUTES?: string;
   NOTIFICATION_CONFIG?: string;
   PIPELINE_NOTIFICATIONS?: 'failures' | 'all' | 'off';
   CHANNEL_CONFIG: string;
@@ -63,7 +64,7 @@ export default {
     }
   },
   async scheduled(_controller, env, ctx) {
-    ctx.waitUntil(channel(env).fetch('https://channel/poll', { method: 'POST' }));
+    ctx.waitUntil(channel(env).fetch('https://channel/ensure-alarm', { method: 'POST' }));
   },
 } satisfies ExportedHandler<ChatmailEnv>;
 
