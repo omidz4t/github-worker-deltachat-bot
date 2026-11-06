@@ -129,10 +129,10 @@ Running, successful, cancelled, and skipped pipelines are silent in failure-only
 
 Open the [notification configurator](https://omidz4t.github.io/github-worker-deltachat-bot/config/) to select event types, actions, pipeline conclusions, and status states. The catalog includes every event listed in GitHub's documentation; organization/App-only events still need an appropriate hook and a payload identifying the configured repository. Custom event/action names are supported for future events. Ping is always acknowledged without a channel notification.
 
-Copy the JSON into a Cloudflare secret named `NOTIFICATION_CONFIG`, or download it and run:
+Use **Copy compressed secret** for a smaller gzip + base64url value, or copy plain JSON. Paste either format into a Cloudflare secret named `NOTIFICATION_CONFIG`, or download the compressed secret and run:
 
 ```sh
-bunx wrangler secret put NOTIFICATION_CONFIG < notification-config.json
+bunx wrangler secret put NOTIFICATION_CONFIG < notification-config.txt
 ```
 
 Example:
@@ -155,3 +155,7 @@ Example:
 `default` decides whether unspecified/new event types are sent (`on`) or ignored (`off`). Each event can be `true`, `false`, or a rule with optional `actions`, `conclusions`, and `states` arrays. All specified filters must match. Omitting a filter means any value; an empty array matches nothing. `conclusions` reads the corresponding event object's conclusion; `states` reads its state (or the top-level commit state / Pages build status).
 
 When the secret is present, it replaces `PIPELINE_NOTIFICATIONS` entirely. Without the secret, existing pipeline filtering remains active. Invalid JSON/settings fail closed with HTTP 503 so GitHub can retry after correction. The configurator exports compact JSON within Cloudflare's 5 KiB secret limit and saves preferences only in your browser. No credentials or secret values are read by the website. It does not apply your choices automatically.
+
+### Compressed configuration
+
+The configurator exports `gz:` followed by gzip-compressed, base64url-encoded JSON. The Worker automatically detects it; existing plain JSON secrets continue to work. Base64 alone makes JSON larger, so compression happens first. Use **Copy compressed secret** or **Download secret** on the config page. You can import either format back into the editor. Compressed values must fit the 5 KiB secret limit; decompressed configurations are limited to 64 KiB. Larger readable JSON can therefore fit in a single compressed secret.

@@ -12,7 +12,7 @@
 <main>
   <a href="../">← Setup guide</a>
   <h1>Choose channel notifications</h1>
-  <p>Select events and optional action/result filters. Copy the JSON into the Cloudflare secret <code>NOTIFICATION_CONFIG</code>.</p>
+  <p>Select events and optional action/result filters. Copy the compressed value into the Cloudflare secret <code>NOTIFICATION_CONFIG</code>.</p>
   <p class="muted">This page runs in your browser. It does not read or change your Worker or require credentials. Selections are saved on this device.</p>
   <div class="toolbar"><button id="recommended">Common activity + failed pipelines</button><button id="all">All events</button><button id="none">No events</button></div>
   <label>Unlisted / future events <select id="default"><option value="off">Do not send</option><option value="on">Send</option></select></label>
@@ -27,21 +27,27 @@
       <p class="muted">Catalog from <a href="https://docs.github.com/en/webhooks/webhook-events-and-payloads">GitHub’s event documentation</a> and <a href="https://github.com/github/rest-api-description">official schemas</a>. <span id="catalog-date"></span></p>
     </section>
     <section class="output" aria-label="Generated configuration">
-      <h2>JSON for your secret</h2>
+      <h2>Small secret value</h2>
+      <textarea id="encoded" rows="5" readonly spellcheck="false" aria-label="Compressed notification secret"></textarea>
+      <p id="encoded-size" class="muted"></p>
+      <div class="toolbar"><button id="copy-compressed" disabled>Copy compressed secret</button><button id="download-compressed" disabled>Download secret</button></div>
+      <details id="json-editor"><summary>View / edit JSON or import an existing configuration</summary>
+      <h2>Readable JSON</h2>
       <textarea id="json" rows="18" spellcheck="false" aria-label="Notification configuration JSON"></textarea>
       <p id="size" class="muted"></p>
       <div class="toolbar"><button id="copy">Copy JSON</button><button id="download">Download JSON</button><button id="apply">Import edited JSON</button></div>
-      <label class="muted">Or import a JSON file <input id="file" type="file" accept=".json,application/json"></label>
+      <label class="muted">Or import a configuration file <input id="file" type="file" accept=".json,.txt,application/json,text/plain"></label>
+      </details>
       <p id="status" class="status" role="status" aria-live="polite"></p>
       <h2>Apply to Cloudflare</h2>
-      <p>Worker → Settings → Variables and Secrets → add a secret named <code>NOTIFICATION_CONFIG</code>, paste the copied JSON, and deploy.</p>
-      <p>Or download the JSON and run from this project:</p>
-      <pre><code>bunx wrangler secret put NOTIFICATION_CONFIG &lt; notification-config.json</code></pre>
-      <p class="muted">Copy and download use compact JSON to fit the 5 KiB secret limit. Explicit rules replace the old pipeline setting. All selected filters must match; an empty selected-actions list sends nothing. Your current settings stay active until you apply this secret.</p>
+      <p>Worker → Settings → Variables and Secrets → add a secret named <code>NOTIFICATION_CONFIG</code>, paste the copied <code>gz:…</code> value, and deploy.</p>
+      <p>Or download the secret and run from this project:</p>
+      <pre><code>bunx wrangler secret put NOTIFICATION_CONFIG &lt; notification-config.txt</code></pre>
+      <p class="muted">The smaller value uses gzip + base64url. Both compressed values and plain JSON are supported, with a 5 KiB secret limit. Explicit rules replace the old pipeline setting. All selected filters must match; an empty selected-actions list sends nothing. Your current settings stay active until you apply this secret.</p>
     </section>
   </div>
   <noscript><p>Enable JavaScript to configure notifications.</p></noscript>
 </main>
-<script type="module" src="./app.js"></script>
+<script type="module" src="./app.js?v=2"></script>
 </body>
 </html>

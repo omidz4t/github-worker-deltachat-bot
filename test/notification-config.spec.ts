@@ -1,5 +1,5 @@
 import { describe, expect, it, vi } from 'vitest';
-import { parseConfig, matchesConfig, recommendedConfig } from '../docs/config/model.js';
+import { parseConfig, matchesConfig, recommendedConfig, encodeConfig, decodeConfig } from '../docs/config/model.js';
 import { githubWebhook, type ChatmailEnv } from '../src/index';
 import catalog from '../docs/config/events.json';
 
@@ -59,8 +59,34 @@ describe('Webhook configuration integration', () => {
     expect((await send('workflow_run')).status).toBe(202);
     expect((await send('push')).status).toBe(200);
     expect(fetch).toHaveBeenCalledTimes(1);
+    env.NOTIFICATION_CONFIG = await encodeConfig(JSON.parse(env.NOTIFICATION_CONFIG!));
+    expect((await send('workflow_run')).status).toBe(202);
+    expect(fetch).toHaveBeenCalledTimes(2);
     env.NOTIFICATION_CONFIG = '{broken';
     expect((await send('workflow_run')).status).toBe(503);
-    expect(fetch).toHaveBeenCalledTimes(1);
+    expect(fetch).toHaveBeenCalledTimes(2);
+  });
+});
+
+describe('Compressed notification secrets', () => {
+  it('round-trips gzip/base64url and still accepts plain JSON', async () => {
+    const config = recommendedConfig(); const encoded = await encodeConfig(config);
+    expect(encoded).toMatch(/^gz:[A-Za-z0-9_-]+$/);
+    expect(encoded.length).toBeLessThan(JSON.stringify(config).length);
+    expect(await decodeConfig(encoded + '\n')).toEqual(config);
+    expect(await decodeConfig(JSON.stringify(config))).toEqual(config);
+  });
+  it('fits larger rule sets into one secret', async () => {
+    const config = { version: 1, default: 'off', events: Object.fromEntries(Array.from({ length: 300 }, (_, i) => [`event_${i}`, { actions: ['opened', 'closed'], conclusions: ['failure', 'timed_out'] }])) };
+    expect(() => parseConfig(config)).toThrow('secret limit');
+    const encoded = await encodeConfig(config); expect(encoded.length).toBeLessThanOrEqual(5120);
+    expect(await decodeConfig(encoded)).toEqual(config);
+  });
+  it('rejects corrupted data and bounded decompression overflow', async () => {
+    await expect(decodeConfig('gz:!!invalid')).rejects.toThrow();
+    await expect(decodeConfig('gz:AAAA')).rejects.toThrow();
+    const bomb = await new Response(new Blob(['x'.repeat(100000)]).stream().pipeThrough(new CompressionStream('gzip'))).arrayBuffer();
+    const encoded = 'gz:' + btoa(Array.from(new Uint8Array(bomb), byte => String.fromCharCode(byte)).join('')).replaceAll('+', '-').replaceAll('/', '_').replace(/=+$/, '');
+    await expect(decodeConfig(encoded)).rejects.toThrow('64 KiB');
   });
 });

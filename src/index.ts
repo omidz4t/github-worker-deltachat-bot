@@ -1,4 +1,4 @@
-import { parseConfig, matchesConfig } from '../docs/config/model.js';
+import { decodeConfig, matchesConfig } from '../docs/config/model.js';
 import { validSignature, githubMessage, shouldNotify } from './github';
 export { Channel } from './channel';
 import { webimapFetch } from './ip-https';
@@ -104,7 +104,7 @@ export async function githubWebhook(request: Request, env: ChatmailEnv): Promise
   try {
     notify = env.NOTIFICATION_CONFIG === undefined
       ? shouldNotify(event, payload, env.PIPELINE_NOTIFICATIONS)
-      : matchesConfig(parseConfig(env.NOTIFICATION_CONFIG), event, payload);
+      : matchesConfig(await decodeConfig(env.NOTIFICATION_CONFIG), event, payload);
   } catch {
     return Response.json({ error: 'Invalid NOTIFICATION_CONFIG secret' }, { status: 503 });
   }

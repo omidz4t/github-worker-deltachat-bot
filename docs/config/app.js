@@ -1,9 +1,10 @@
-import { parseConfig, recommendedConfig, MAX_CONFIG_BYTES } from './model.js';
+import { parseConfig, recommendedConfig, MAX_CONFIG_BYTES, MAX_EXPANDED_BYTES, encodeConfig, decodeConfig } from './model.js?v=2';
 
 const $ = id => document.getElementById(id);
 const storageKey = 'github-deltachat-notifications-v1';
 let config = recommendedConfig();
 let catalog = [];
+let outputRevision = 0;
 const conclusionEvents = new Set(['workflow_run', 'workflow_job', 'check_run', 'check_suite']);
 const conclusions = ['failure', 'timed_out', 'startup_failure', 'action_required', 'success', 'neutral', 'cancelled', 'skipped', 'stale'];
 const stateEvents = { status: ['error', 'failure', 'pending', 'success'], deployment_status: ['error', 'failure', 'inactive', 'in_progress', 'queued', 'pending', 'success'], page_build: ['built', 'errored', 'building'] };
@@ -20,6 +21,23 @@ function updateOutput() {
   try { compact(); $('copy').disabled = false; $('download').disabled = false; message(''); }
   catch (error) { $('copy').disabled = true; $('download').disabled = true; message(error.message, true); }
   save();
+  updateCompressed();
+}
+async function updateCompressed() {
+  const revision = ++outputRevision;
+  $('copy-compressed').disabled = true; $('download-compressed').disabled = true;
+  $('encoded').value = ''; $('encoded-size').textContent = 'Compressing…';
+  try {
+    const encoded = await encodeConfig(config);
+    if (revision !== outputRevision) return;
+    $('encoded').value = encoded;
+    const raw = new TextEncoder().encode(JSON.stringify(config)).length;
+    $('encoded-size').textContent = `${encoded.length.toLocaleString()} / ${MAX_CONFIG_BYTES.toLocaleString()} bytes · JSON: ${raw.toLocaleString()} bytes${encoded.length < raw ? ` · ${Math.round((1 - encoded.length / raw) * 100)}% smaller` : ''}`;
+    $('copy-compressed').disabled = false; $('download-compressed').disabled = false;
+  } catch (error) {
+    if (revision !== outputRevision) return;
+    $('encoded-size').textContent = error.message;
+  }
 }
 function putRule(name, value) {
   if (typeof value === 'boolean' && value === (config.default === 'on')) delete config.events[name];
@@ -88,9 +106,9 @@ function renderEvents() {
   if (!$('events').children.length) $('events').append(element('p', 'No matching events.', 'muted'));
 }
 function refresh() { $('default').value = config.default; renderEvents(); updateOutput(); }
-function importJson(text) {
+async function importJson(text) {
   try {
-    config = parseConfig(text);
+    config = typeof text === 'string' && text.trim().startsWith('gz:') ? await decodeConfig(text) : parseConfig(text, MAX_EXPANDED_BYTES);
     for (const name of Object.keys(config.events)) if (!catalog.some(event => event.name === name)) catalog.push({ name, actions: [] });
     catalog.sort((a, b) => a.name.localeCompare(b.name)); refresh(); message('Configuration imported.');
   } catch (error) { message(error.message, true); }
@@ -118,7 +136,7 @@ $('download').addEventListener('click', () => {
   } catch (error) { message(error.message, true); }
 });
 $('apply').addEventListener('click', () => importJson($('json').value));
-$('json').addEventListener('input', () => { $('copy').disabled = true; $('download').disabled = true; message('Click Import edited JSON to validate and apply your edits.'); });
+$('json').addEventListener('input', () => { ++outputRevision; $('copy-compressed').disabled = true; $('download-compressed').disabled = true; $('encoded').value = '';  $('copy').disabled = true; $('download').disabled = true; message('Click Import edited JSON to validate and apply your edits.'); });
 $('file').addEventListener('change', async () => {
   const file = $('file').files?.[0]; if (!file) return;
   if (file.size > 65536) { message('Import file exceeds 64 KiB.', true); return; }
@@ -134,7 +152,17 @@ try {
   const response = await fetch('./events.json'); if (!response.ok) throw new Error('Could not load the event catalog.');
   const data = await response.json(); catalog = data.events;
   $('catalog-date').textContent = `Updated ${data.updated}.`;
-  try { const saved = localStorage.getItem(storageKey); if (saved) config = parseConfig(saved); } catch { /* Start with recommended settings if stored preferences are invalid. */ }
+  try { const saved = localStorage.getItem(storageKey); if (saved) config = parseConfig(saved, MAX_EXPANDED_BYTES); } catch { /* Start with recommended settings if stored preferences are invalid. */ }
   for (const name of Object.keys(config.events)) if (!catalog.some(event => event.name === name)) catalog.push({ name, actions: [] });
   refresh();
 } catch (error) { $('events').replaceChildren(element('p', error.message, 'error')); message(error.message, true); }
+
+$('copy-compressed').addEventListener('click', async () => {
+  try { await navigator.clipboard.writeText($('encoded').value); message('Compressed secret copied. Paste it into NOTIFICATION_CONFIG.'); }
+  catch { message('Clipboard unavailable. Use Download secret.', true); }
+});
+$('download-compressed').addEventListener('click', () => {
+  const url = URL.createObjectURL(new Blob([$('encoded').value + '\n'], { type: 'text/plain' }));
+  const link = document.createElement('a'); link.href = url; link.download = 'notification-config.txt'; link.click();
+  setTimeout(() => URL.revokeObjectURL(url), 1000); message('Secret downloaded.');
+});
