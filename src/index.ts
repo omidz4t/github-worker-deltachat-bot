@@ -1,3 +1,4 @@
+import { parseConfig, matchesConfig } from '../docs/config/model.js';
 import { validSignature, githubMessage, shouldNotify } from './github';
 export { Channel } from './channel';
 import { webimapFetch } from './ip-https';
@@ -14,6 +15,7 @@ export interface ChatmailEnv extends MailConfig {
   API_TOKEN: string;
   GITHUB_WEBHOOK_SECRET: string;
   GITHUB_REPOSITORY: string;
+  NOTIFICATION_CONFIG?: string;
   PIPELINE_NOTIFICATIONS?: 'failures' | 'all' | 'off';
   CHANNEL_CONFIG: string;
   NOTIFICATIONS: DurableObjectNamespace;
@@ -98,7 +100,15 @@ export async function githubWebhook(request: Request, env: ChatmailEnv): Promise
   const event = request.headers.get('x-github-event');
   if (!event || !/^[a-z_]+$/.test(event)) return Response.json({ error: 'Missing or invalid GitHub event' }, { status: 400 });
   if (event === 'ping') return Response.json({ status: 'pong' });
-  if (!shouldNotify(event, payload, env.PIPELINE_NOTIFICATIONS)) return Response.json({ status: 'ignored', reason: 'pipeline notification filter' });
+  let notify: boolean;
+  try {
+    notify = env.NOTIFICATION_CONFIG === undefined
+      ? shouldNotify(event, payload, env.PIPELINE_NOTIFICATIONS)
+      : matchesConfig(parseConfig(env.NOTIFICATION_CONFIG), event, payload);
+  } catch {
+    return Response.json({ error: 'Invalid NOTIFICATION_CONFIG secret' }, { status: 503 });
+  }
+  if (!notify) return Response.json({ status: 'ignored', reason: 'notification filter' });
   const id = request.headers.get('x-github-delivery');
   if (!id || !/^[a-f0-9-]{36}$/i.test(id)) return Response.json({ error: 'Missing or invalid delivery ID' }, { status: 400 });
   return channel(env).fetch('https://channel/enqueue', { method: 'POST', body: JSON.stringify({ id, text: githubMessage(event, payload) }) });

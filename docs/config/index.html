@@ -1,0 +1,47 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Notification configuration · GitHub → Delta Chat</title>
+  <style>
+    *{box-sizing:border-box}body{margin:0;padding:28px 16px;background:#f5f5f5;color:#222;font:14px/1.55 system-ui,sans-serif}main{max-width:1000px;margin:auto;background:white;border:1px solid #d8d8d8;padding:24px}h1{font-size:23px;margin:14px 0 8px}h2{font-size:16px;margin:18px 0 8px}p{margin:8px 0}a{color:#175a91}button,input,select,textarea{font:inherit}button{border:1px solid #aaa;background:#f6f6f6;border-radius:3px;padding:6px 10px;cursor:pointer}button:hover{background:#eee}button:disabled{opacity:.5;cursor:default}input[type=checkbox]{accent-color:#333;vertical-align:middle}input[type=search],input[type=text],textarea,select{border:1px solid #bbb;padding:7px;background:white;color:#222}input[type=search]{width:100%}textarea{width:100%;font:12px/1.5 ui-monospace,monospace}pre{overflow:auto;background:#f5f5f5;padding:10px;font-size:12px}code{font:12px/1.5 ui-monospace,monospace;overflow-wrap:anywhere}.toolbar{display:flex;gap:8px;flex-wrap:wrap;margin:14px 0}.layout{display:grid;grid-template-columns:minmax(0,1fr) minmax(0,1fr);gap:24px}.event{border-bottom:1px solid #e4e4e4;padding:9px 0}.event-title{display:flex;justify-content:space-between;gap:8px}.event-title label{min-width:0;font-weight:600;overflow-wrap:anywhere}.filters{margin:7px 0 3px 22px}fieldset{min-width:0;margin:8px 0;padding:9px;border:1px solid #ddd}.choices{display:flex;flex-wrap:wrap;gap:4px 12px;margin-top:6px}.choices label{font-size:12px}.muted{color:#555;font-size:12px}.status{min-height:22px;font-size:12px}.error{color:#a51919}.layout>section{min-width:0}input[type=file]{max-width:100%}.output{position:sticky;top:18px;align-self:start}summary{cursor:pointer}button:focus-visible,a:focus-visible,input:focus-visible,textarea:focus-visible,select:focus-visible{outline:2px solid #175a91;outline-offset:2px}[hidden]{display:none!important}.custom{display:flex;gap:8px;margin-top:12px}.custom input{min-width:0;flex:1}@media(max-width:750px){.layout{grid-template-columns:minmax(0,1fr)}.layout>section{min-width:0}input[type=file]{max-width:100%}.output{position:static;grid-row:1}main{padding:18px}body{padding:12px}}
+  </style>
+</head>
+<body>
+<main>
+  <a href="../">← Setup guide</a>
+  <h1>Choose channel notifications</h1>
+  <p>Select events and optional action/result filters. Copy the JSON into the Cloudflare secret <code>NOTIFICATION_CONFIG</code>.</p>
+  <p class="muted">This page runs in your browser. It does not read or change your Worker or require credentials. Selections are saved on this device.</p>
+  <div class="toolbar"><button id="recommended">Common activity + failed pipelines</button><button id="all">All events</button><button id="none">No events</button></div>
+  <label>Unlisted / future events <select id="default"><option value="off">Do not send</option><option value="on">Send</option></select></label>
+  <p class="muted">GitHub must also be configured to deliver the selected events. Some events require organization or GitHub App hooks; this bridge only accepts payloads for its configured repository. Ping is always acknowledged without a channel message.</p>
+  <div class="layout">
+    <section aria-label="Event selection">
+      <h2>Events <span id="count" class="muted"></span></h2>
+      <label for="search" class="muted">Search event names or actions</label>
+      <input id="search" type="search" placeholder="e.g. pull_request, release, workflow">
+      <div id="events"><p>Loading event catalog…</p></div>
+      <form id="custom" class="custom"><input id="custom-name" aria-label="Custom event name" placeholder="custom_event_name" pattern="[a-z][a-z0-9_]*" required><button>Add event</button></form>
+      <p class="muted">Catalog from <a href="https://docs.github.com/en/webhooks/webhook-events-and-payloads">GitHub’s event documentation</a> and <a href="https://github.com/github/rest-api-description">official schemas</a>. <span id="catalog-date"></span></p>
+    </section>
+    <section class="output" aria-label="Generated configuration">
+      <h2>JSON for your secret</h2>
+      <textarea id="json" rows="18" spellcheck="false" aria-label="Notification configuration JSON"></textarea>
+      <p id="size" class="muted"></p>
+      <div class="toolbar"><button id="copy">Copy JSON</button><button id="download">Download JSON</button><button id="apply">Import edited JSON</button></div>
+      <label class="muted">Or import a JSON file <input id="file" type="file" accept=".json,application/json"></label>
+      <p id="status" class="status" role="status" aria-live="polite"></p>
+      <h2>Apply to Cloudflare</h2>
+      <p>Worker → Settings → Variables and Secrets → add a secret named <code>NOTIFICATION_CONFIG</code>, paste the copied JSON, and deploy.</p>
+      <p>Or download the JSON and run from this project:</p>
+      <pre><code>bunx wrangler secret put NOTIFICATION_CONFIG &lt; notification-config.json</code></pre>
+      <p class="muted">Copy and download use compact JSON to fit the 5 KiB secret limit. Explicit rules replace the old pipeline setting. All selected filters must match; an empty selected-actions list sends nothing. Your current settings stay active until you apply this secret.</p>
+    </section>
+  </div>
+  <noscript><p>Enable JavaScript to configure notifications.</p></noscript>
+</main>
+<script type="module" src="./app.js"></script>
+</body>
+</html>

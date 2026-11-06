@@ -1,0 +1,632 @@
+{
+  "source": "https://docs.github.com/en/webhooks/webhook-events-and-payloads",
+  "schemaSource": "https://github.com/github/rest-api-description",
+  "updated": "2026-11-06",
+  "events": [
+    {
+      "name": "branch_protection_configuration",
+      "actions": [
+        "disabled",
+        "enabled"
+      ]
+    },
+    {
+      "name": "branch_protection_rule",
+      "actions": [
+        "created",
+        "deleted",
+        "edited"
+      ]
+    },
+    {
+      "name": "check_run",
+      "actions": [
+        "completed",
+        "created",
+        "requested_action",
+        "rerequested"
+      ]
+    },
+    {
+      "name": "check_suite",
+      "actions": [
+        "completed",
+        "requested",
+        "rerequested"
+      ]
+    },
+    {
+      "name": "code_scanning_alert",
+      "actions": [
+        "appeared_in_branch",
+        "closed_by_user",
+        "created",
+        "fixed",
+        "reopened",
+        "reopened_by_user",
+        "updated_assignment"
+      ]
+    },
+    {
+      "name": "commit_comment",
+      "actions": [
+        "created"
+      ]
+    },
+    {
+      "name": "create",
+      "actions": []
+    },
+    {
+      "name": "custom_property",
+      "actions": [
+        "created",
+        "deleted",
+        "promote_to_enterprise",
+        "updated"
+      ]
+    },
+    {
+      "name": "custom_property_values",
+      "actions": [
+        "updated"
+      ]
+    },
+    {
+      "name": "delete",
+      "actions": []
+    },
+    {
+      "name": "dependabot_alert",
+      "actions": [
+        "assignees_changed",
+        "auto_dismissed",
+        "auto_reopened",
+        "created",
+        "dismissed",
+        "fixed",
+        "reintroduced",
+        "reopened",
+        "withdrawn"
+      ]
+    },
+    {
+      "name": "deploy_key",
+      "actions": [
+        "created",
+        "deleted"
+      ]
+    },
+    {
+      "name": "deployment",
+      "actions": [
+        "created"
+      ]
+    },
+    {
+      "name": "deployment_protection_rule",
+      "actions": [
+        "requested"
+      ]
+    },
+    {
+      "name": "deployment_review",
+      "actions": [
+        "approved",
+        "rejected",
+        "requested"
+      ]
+    },
+    {
+      "name": "deployment_status",
+      "actions": [
+        "created"
+      ]
+    },
+    {
+      "name": "discussion",
+      "actions": [
+        "answered",
+        "category_changed",
+        "closed",
+        "created",
+        "deleted",
+        "edited",
+        "labeled",
+        "locked",
+        "pinned",
+        "reopened",
+        "transferred",
+        "unanswered",
+        "unlabeled",
+        "unlocked",
+        "unpinned"
+      ]
+    },
+    {
+      "name": "discussion_comment",
+      "actions": [
+        "created",
+        "deleted",
+        "edited"
+      ]
+    },
+    {
+      "name": "fork",
+      "actions": []
+    },
+    {
+      "name": "github_app_authorization",
+      "actions": [
+        "revoked"
+      ]
+    },
+    {
+      "name": "gollum",
+      "actions": []
+    },
+    {
+      "name": "installation",
+      "actions": [
+        "created",
+        "deleted",
+        "new_permissions_accepted",
+        "suspend",
+        "unsuspend"
+      ]
+    },
+    {
+      "name": "installation_repositories",
+      "actions": [
+        "added",
+        "removed"
+      ]
+    },
+    {
+      "name": "installation_target",
+      "actions": [
+        "renamed"
+      ]
+    },
+    {
+      "name": "issue_comment",
+      "actions": [
+        "created",
+        "deleted",
+        "edited",
+        "pinned",
+        "unpinned"
+      ]
+    },
+    {
+      "name": "issue_dependencies",
+      "actions": [
+        "blocked_by_added",
+        "blocked_by_removed",
+        "blocking_added",
+        "blocking_removed"
+      ]
+    },
+    {
+      "name": "issue_relates_to",
+      "actions": [
+        "relates_to_added",
+        "relates_to_removed"
+      ]
+    },
+    {
+      "name": "issues",
+      "actions": [
+        "assigned",
+        "closed",
+        "deleted",
+        "demilestoned",
+        "edited",
+        "field_added",
+        "field_removed",
+        "labeled",
+        "locked",
+        "milestoned",
+        "opened",
+        "pinned",
+        "reopened",
+        "transferred",
+        "typed",
+        "unassigned",
+        "unlabeled",
+        "unlocked",
+        "unpinned",
+        "untyped"
+      ]
+    },
+    {
+      "name": "label",
+      "actions": [
+        "archived",
+        "created",
+        "deleted",
+        "edited",
+        "unarchived"
+      ]
+    },
+    {
+      "name": "marketplace_purchase",
+      "actions": [
+        "cancelled",
+        "changed",
+        "pending_change",
+        "pending_change_cancelled",
+        "purchased"
+      ]
+    },
+    {
+      "name": "member",
+      "actions": [
+        "added",
+        "edited",
+        "removed"
+      ]
+    },
+    {
+      "name": "membership",
+      "actions": [
+        "added",
+        "removed"
+      ]
+    },
+    {
+      "name": "merge_group",
+      "actions": [
+        "checks_requested",
+        "destroyed"
+      ]
+    },
+    {
+      "name": "meta",
+      "actions": [
+        "deleted"
+      ]
+    },
+    {
+      "name": "milestone",
+      "actions": [
+        "closed",
+        "created",
+        "deleted",
+        "edited",
+        "opened"
+      ]
+    },
+    {
+      "name": "org_block",
+      "actions": [
+        "blocked",
+        "unblocked"
+      ]
+    },
+    {
+      "name": "organization",
+      "actions": [
+        "deleted",
+        "member_added",
+        "member_invited",
+        "member_removed",
+        "renamed"
+      ]
+    },
+    {
+      "name": "package",
+      "actions": [
+        "published",
+        "updated"
+      ]
+    },
+    {
+      "name": "page_build",
+      "actions": []
+    },
+    {
+      "name": "personal_access_token_request",
+      "actions": [
+        "approved",
+        "cancelled",
+        "created",
+        "denied"
+      ]
+    },
+    {
+      "name": "ping",
+      "actions": []
+    },
+    {
+      "name": "project",
+      "actions": [
+        "closed",
+        "created",
+        "deleted",
+        "edited",
+        "reopened"
+      ]
+    },
+    {
+      "name": "project_card",
+      "actions": [
+        "converted",
+        "created",
+        "deleted",
+        "edited",
+        "moved"
+      ]
+    },
+    {
+      "name": "project_column",
+      "actions": [
+        "created",
+        "deleted",
+        "edited",
+        "moved"
+      ]
+    },
+    {
+      "name": "projects_v2",
+      "actions": [
+        "closed",
+        "created",
+        "deleted",
+        "edited",
+        "reopened"
+      ]
+    },
+    {
+      "name": "projects_v2_item",
+      "actions": [
+        "archived",
+        "converted",
+        "created",
+        "deleted",
+        "edited",
+        "reordered",
+        "restored"
+      ]
+    },
+    {
+      "name": "projects_v2_status_update",
+      "actions": [
+        "created",
+        "deleted",
+        "edited"
+      ]
+    },
+    {
+      "name": "public",
+      "actions": []
+    },
+    {
+      "name": "pull_request",
+      "actions": [
+        "assigned",
+        "auto_merge_disabled",
+        "auto_merge_enabled",
+        "closed",
+        "converted_to_draft",
+        "demilestoned",
+        "dequeued",
+        "edited",
+        "enqueued",
+        "labeled",
+        "locked",
+        "milestoned",
+        "opened",
+        "ready_for_review",
+        "reopened",
+        "stacked",
+        "synchronize",
+        "unassigned",
+        "unlabeled",
+        "unlocked"
+      ]
+    },
+    {
+      "name": "pull_request_review",
+      "actions": [
+        "dismissed",
+        "edited",
+        "submitted"
+      ]
+    },
+    {
+      "name": "pull_request_review_comment",
+      "actions": [
+        "created",
+        "deleted",
+        "edited"
+      ]
+    },
+    {
+      "name": "pull_request_review_thread",
+      "actions": [
+        "resolved",
+        "unresolved"
+      ]
+    },
+    {
+      "name": "push",
+      "actions": []
+    },
+    {
+      "name": "registry_package",
+      "actions": [
+        "published",
+        "updated"
+      ]
+    },
+    {
+      "name": "release",
+      "actions": [
+        "created",
+        "deleted",
+        "edited",
+        "prereleased",
+        "published",
+        "released",
+        "unpublished"
+      ]
+    },
+    {
+      "name": "repository",
+      "actions": [
+        "archived",
+        "created",
+        "deleted",
+        "edited",
+        "privatized",
+        "publicized",
+        "renamed",
+        "transferred",
+        "unarchived"
+      ]
+    },
+    {
+      "name": "repository_advisory",
+      "actions": [
+        "published",
+        "reported"
+      ]
+    },
+    {
+      "name": "repository_dispatch",
+      "actions": []
+    },
+    {
+      "name": "repository_import",
+      "actions": []
+    },
+    {
+      "name": "repository_ruleset",
+      "actions": [
+        "created",
+        "deleted",
+        "edited"
+      ]
+    },
+    {
+      "name": "repository_vulnerability_alert",
+      "actions": [
+        "create",
+        "dismiss",
+        "reopen",
+        "resolve"
+      ]
+    },
+    {
+      "name": "secret_scanning_alert",
+      "actions": [
+        "assigned",
+        "created",
+        "metadata_created",
+        "metadata_removed",
+        "publicly_leaked",
+        "reopened",
+        "resolved",
+        "unassigned",
+        "validated"
+      ]
+    },
+    {
+      "name": "secret_scanning_alert_location",
+      "actions": [
+        "created"
+      ]
+    },
+    {
+      "name": "secret_scanning_scan",
+      "actions": [
+        "completed"
+      ]
+    },
+    {
+      "name": "security_advisory",
+      "actions": [
+        "published",
+        "updated",
+        "withdrawn"
+      ]
+    },
+    {
+      "name": "security_and_analysis",
+      "actions": []
+    },
+    {
+      "name": "sponsorship",
+      "actions": [
+        "cancelled",
+        "created",
+        "edited",
+        "pending_cancellation",
+        "pending_tier_change",
+        "tier_changed"
+      ]
+    },
+    {
+      "name": "star",
+      "actions": [
+        "created",
+        "deleted"
+      ]
+    },
+    {
+      "name": "status",
+      "actions": []
+    },
+    {
+      "name": "sub_issues",
+      "actions": [
+        "parent_issue_added",
+        "parent_issue_removed",
+        "sub_issue_added",
+        "sub_issue_removed"
+      ]
+    },
+    {
+      "name": "team",
+      "actions": [
+        "added_to_repository",
+        "created",
+        "deleted",
+        "edited",
+        "removed_from_repository"
+      ]
+    },
+    {
+      "name": "team_add",
+      "actions": []
+    },
+    {
+      "name": "watch",
+      "actions": [
+        "started"
+      ]
+    },
+    {
+      "name": "workflow_dispatch",
+      "actions": []
+    },
+    {
+      "name": "workflow_job",
+      "actions": [
+        "completed",
+        "in_progress",
+        "queued",
+        "waiting"
+      ]
+    },
+    {
+      "name": "workflow_run",
+      "actions": [
+        "completed",
+        "in_progress",
+        "requested"
+      ]
+    }
+  ]
+}

@@ -124,3 +124,34 @@ On pushes to `main`, GitHub Actions installs locked dependencies, type-checks, a
 - `off`: no pipeline notifications.
 
 Running, successful, cancelled, and skipped pipelines are silent in failure-only mode. Other repository events are unaffected. Change the variable and run `bun run deploy` to apply it.
+
+## JSON notification configuration
+
+Open the [notification configurator](https://omidz4t.github.io/github-worker-deltachat-bot/config/) to select event types, actions, pipeline conclusions, and status states. The catalog includes every event listed in GitHub's documentation; organization/App-only events still need an appropriate hook and a payload identifying the configured repository. Custom event/action names are supported for future events. Ping is always acknowledged without a channel notification.
+
+Copy the JSON into a Cloudflare secret named `NOTIFICATION_CONFIG`, or download it and run:
+
+```sh
+bunx wrangler secret put NOTIFICATION_CONFIG < notification-config.json
+```
+
+Example:
+
+```json
+{
+  "version": 1,
+  "default": "off",
+  "events": {
+    "push": true,
+    "issues": { "actions": ["opened", "closed"] },
+    "workflow_run": {
+      "actions": ["completed"],
+      "conclusions": ["failure", "timed_out"]
+    }
+  }
+}
+```
+
+`default` decides whether unspecified/new event types are sent (`on`) or ignored (`off`). Each event can be `true`, `false`, or a rule with optional `actions`, `conclusions`, and `states` arrays. All specified filters must match. Omitting a filter means any value; an empty array matches nothing. `conclusions` reads the corresponding event object's conclusion; `states` reads its state (or the top-level commit state / Pages build status).
+
+When the secret is present, it replaces `PIPELINE_NOTIFICATIONS` entirely. Without the secret, existing pipeline filtering remains active. Invalid JSON/settings fail closed with HTTP 503 so GitHub can retry after correction. The configurator exports compact JSON within Cloudflare's 5 KiB secret limit and saves preferences only in your browser. No credentials or secret values are read by the website. It does not apply your choices automatically.
