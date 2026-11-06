@@ -14,12 +14,13 @@
   <h1>Choose channel notifications</h1>
   <p>Select events and optional action/result filters. Copy the compressed value into the Cloudflare secret <code>NOTIFICATION_CONFIG</code>.</p>
   <p class="muted">This page runs in your browser. It does not read or change your Worker or require credentials. Selections are saved on this device.</p>
-  <div class="toolbar"><button id="recommended">Common activity + failed pipelines</button><button id="all">All events</button><button id="none">No events</button></div>
+  <div class="toolbar"><button id="recommended">Common activity + failed pipelines</button></div>
   <label>Unlisted / future events <select id="default"><option value="off">Do not send</option><option value="on">Send</option></select></label>
   <p class="muted">GitHub must also be configured to deliver the selected events. Some events require organization or GitHub App hooks; this bridge only accepts payloads for its configured repository. Ping is always acknowledged without a channel message.</p>
   <div class="layout">
     <section aria-label="Event selection">
       <h2>Events <span id="count" class="muted"></span></h2>
+      <div class="toolbar" aria-label="Select events"><button id="all">Select all</button><button id="none">Deselect all</button></div>
       <label for="search" class="muted">Search event names or actions</label>
       <input id="search" type="search" placeholder="e.g. pull_request, release, workflow">
       <div id="events"><p>Loading event catalog…</p></div>
