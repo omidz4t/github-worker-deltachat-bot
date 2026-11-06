@@ -26,12 +26,27 @@ export function githubMessage(event: string, payload: Record<string, any>): stri
     case 'release':
       detail = `${actor}${action}: release ${payload.release?.name || payload.release?.tag_name || ''}`;
       url = payload.release?.html_url ?? url; break;
-    case 'workflow_run':
-      detail = `${payload.workflow_run?.name ?? 'Workflow'}: ${payload.workflow_run?.conclusion ?? payload.workflow_run?.status ?? payload.action}`;
-      url = payload.workflow_run?.html_url ?? url; break;
+    case 'workflow_run': case 'workflow_job': case 'check_run': case 'check_suite': {
+      const result = payload[event];
+      detail = `${result?.name ?? result?.app?.name ?? 'Pipeline'}: ${result?.conclusion ?? result?.status ?? payload.action}`;
+      url = result?.html_url ?? (result?.check_runs_url ? `${payload.repository?.html_url}/actions` : url); break;
+    }
+    case 'status':
+      detail = `${payload.context ?? 'Commit status'}: ${payload.state ?? ''}`;
+      url = payload.target_url ?? payload.commit?.html_url ?? url; break;
     case 'star': detail = `${actor}${action} a star`; break;
     case 'fork': detail = `${actor} forked the repository`; url = payload.forkee?.html_url ?? url; break;
     default: detail = `${actor}: ${event}${action}`;
   }
   return `[${repo}] ${event}${action}\n${detail}\n${url}`.slice(0, 4000);
+}
+
+export function shouldNotify(event: string, payload: Record<string, any>, mode = 'failures'): boolean {
+  const pipelineEvents = ['workflow_run', 'workflow_job', 'check_run', 'check_suite', 'status'];
+  if (!pipelineEvents.includes(event)) return true;
+  if (mode === 'all') return true;
+  if (mode === 'off') return false;
+  if (event === 'status') return ['failure', 'error'].includes(payload.state);
+  const result = payload[event];
+  return payload.action === 'completed' && ['failure', 'timed_out', 'startup_failure', 'action_required'].includes(result?.conclusion);
 }

@@ -55,6 +55,7 @@ CHANNEL_NAME="Madmail GitHub"
 BOT_LOGO="https://madmail.chat/favicon.png"
 CHANNEL_LOGO="https://madmail.chat/favicon.png"</code></pre>
       <p>Names and logos are configurable. Logos accept an HTTPS URL or a local PNG/JPEG path (max 3.75 KiB); both default to the Madmail icon and are saved in Cloudflare secrets.</p>
+      <p><code>PIPELINE_NOTIFICATIONS</code> in <code>wrangler.jsonc</code>: <code>failures</code> (default), <code>all</code>, or <code>off</code>. Successful and running pipelines are silent by default.</p>
       <p>Set <code>GITHUB_REPOSITORY</code> in <code>wrangler.jsonc</code>. Update the Worker URLs in <code>scripts/</code> for your deployment.</p>
     </li>
     <li><strong>Create the account and channel, then deploy.</strong> Keep the contact’s Delta Chat client online for the handshake.

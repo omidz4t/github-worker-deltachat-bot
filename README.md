@@ -114,3 +114,13 @@ The next inbox/alarm pass sends profile updates to existing subscribers. Future 
 Use [Conventional Commits](https://www.conventionalcommits.org/): `feat:` creates a minor release; `fix:`, `perf:`, and `revert:` create a patch release. A `!` in the header or a `BREAKING CHANGE:` footer creates a major release. Documentation and maintenance commits do not release on their own.
 
 On pushes to `main`, GitHub Actions installs locked dependencies, type-checks, and runs tests. After checks pass, it updates `package.json`, pushes an unsigned `chore(release): vX.Y.Z` commit and version tag atomically, then publishes a GitHub release with generated notes. Releases use the built-in GitHub token; no signing key or Cloudflare credentials are needed. The workflow can also be run manually to recover an interrupted release. Pull requests only run checks.
+
+## Pipeline notifications
+
+`PIPELINE_NOTIFICATIONS` in `wrangler.jsonc` controls workflow runs/jobs, check runs/suites, and commit status events:
+
+- `failures` (default): only completed failures, timeouts, startup failures, or action-required results; commit statuses notify on failure/error.
+- `all`: every pipeline event.
+- `off`: no pipeline notifications.
+
+Running, successful, cancelled, and skipped pipelines are silent in failure-only mode. Other repository events are unaffected. Change the variable and run `bun run deploy` to apply it.

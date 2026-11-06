@@ -1,4 +1,4 @@
-import { validSignature, githubMessage } from './github';
+import { validSignature, githubMessage, shouldNotify } from './github';
 export { Channel } from './channel';
 import { webimapFetch } from './ip-https';
 import { encryptedMail, submit, type Contact, type MailConfig } from './chatmail';
@@ -14,6 +14,7 @@ export interface ChatmailEnv extends MailConfig {
   API_TOKEN: string;
   GITHUB_WEBHOOK_SECRET: string;
   GITHUB_REPOSITORY: string;
+  PIPELINE_NOTIFICATIONS?: 'failures' | 'all' | 'off';
   CHANNEL_CONFIG: string;
   NOTIFICATIONS: DurableObjectNamespace;
 }
@@ -97,6 +98,7 @@ export async function githubWebhook(request: Request, env: ChatmailEnv): Promise
   const event = request.headers.get('x-github-event');
   if (!event || !/^[a-z_]+$/.test(event)) return Response.json({ error: 'Missing or invalid GitHub event' }, { status: 400 });
   if (event === 'ping') return Response.json({ status: 'pong' });
+  if (!shouldNotify(event, payload, env.PIPELINE_NOTIFICATIONS)) return Response.json({ status: 'ignored', reason: 'pipeline notification filter' });
   const id = request.headers.get('x-github-delivery');
   if (!id || !/^[a-f0-9-]{36}$/i.test(id)) return Response.json({ error: 'Missing or invalid delivery ID' }, { status: 400 });
   return channel(env).fetch('https://channel/enqueue', { method: 'POST', body: JSON.stringify({ id, text: githubMessage(event, payload) }) });

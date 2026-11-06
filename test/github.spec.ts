@@ -1,5 +1,5 @@
 import { describe, it, expect, vi } from 'vitest';
-import { validSignature, githubMessage } from '../src/github';
+import { validSignature, githubMessage, shouldNotify } from '../src/github';
 import { githubWebhook, type ChatmailEnv } from '../src/index';
 const secret = 'test-webhook-secret';
 async function sign(raw: string) {
@@ -35,5 +35,35 @@ describe('GitHub signature validation and routing', () => {
   });
   it('formats a release notification', () => {
     expect(githubMessage('release', { action: 'published', repository: { full_name: 'themadorg/madmail' }, release: { tag_name: 'v1.0', html_url: 'https://github.com/themadorg/madmail/releases/tag/v1.0' } })).toContain('release v1.0');
+  });
+});
+
+describe('pipeline notification filter', () => {
+  it.each(['workflow_run', 'workflow_job', 'check_run', 'check_suite'])('filters %s to completed failures by default', event => {
+    for (const conclusion of ['failure', 'timed_out', 'startup_failure', 'action_required']) expect(shouldNotify(event, { action: 'completed', [event]: { conclusion } })).toBe(true);
+    for (const conclusion of ['success', 'neutral', 'cancelled', 'skipped', null]) expect(shouldNotify(event, { action: 'completed', [event]: { conclusion } })).toBe(false);
+    expect(shouldNotify(event, { action: 'in_progress', [event]: { conclusion: 'failure' } })).toBe(false);
+    expect(shouldNotify(event, { action: 'requested' }, 'all')).toBe(true);
+    expect(shouldNotify(event, { action: 'completed', [event]: { conclusion: 'failure' } }, 'off')).toBe(false);
+  });
+  it('filters commit statuses and leaves other events alone', () => {
+    expect(shouldNotify('status', { state: 'failure' })).toBe(true);
+    expect(shouldNotify('status', { state: 'error' })).toBe(true);
+    expect(shouldNotify('status', { state: 'success' })).toBe(false);
+    expect(shouldNotify('status', { state: 'pending' })).toBe(false);
+    expect(shouldNotify('push', {}, 'off')).toBe(true);
+  });
+  it('acknowledges signed nonfailure events without adding them to the queue', async () => {
+    const fetch = vi.fn().mockResolvedValue(Response.json({ status: 'queued' }, { status: 202 }));
+    const env = { GITHUB_WEBHOOK_SECRET: secret, GITHUB_REPOSITORY: 'themadorg/madmail', PIPELINE_NOTIFICATIONS: 'failures', NOTIFICATIONS: { idFromName: () => 'id', get: () => ({ fetch }) } } as unknown as ChatmailEnv;
+    async function send(conclusion: string) {
+      const raw = JSON.stringify({ repository: { full_name: 'themadorg/madmail' }, action: 'completed', workflow_job: { name: 'Tests', conclusion, html_url: 'https://github.com/themadorg/madmail/actions/runs/1' } });
+      return githubWebhook(new Request('https://worker/github/webhook', { method: 'POST', body: raw, headers: { 'x-hub-signature-256': await sign(raw), 'x-github-event': 'workflow_job', 'x-github-delivery': crypto.randomUUID() } }), env);
+    }
+    expect((await send('success')).status).toBe(200);
+    expect(fetch).not.toHaveBeenCalled();
+    expect((await send('failure')).status).toBe(202);
+    expect(fetch).toHaveBeenCalledTimes(1);
+    expect(JSON.parse(fetch.mock.calls[0][1].body).text).toContain('Tests: failure');
   });
 });
