@@ -1,3 +1,4 @@
+import { configureProfile } from './profile';
 import * as openpgp from 'openpgp';
 import { autocrypt, decryptMail, encryptedMail, mailRequest, pgpConfig, submit, type Contact } from '../src/chatmail';
 import { chmodSync } from 'node:fs';
@@ -20,7 +21,7 @@ else {
   const response = await fetch(new URL('/new', hostname), { method: 'POST' });
   if (!response.ok) throw new Error(`Registration HTTP ${response.status}`);
   const account = await response.json() as { email: string; password: string };
-  const keys = await openpgp.generateKey({ type: 'ecc', curve: 'curve25519Legacy', userIDs: [{ name: 'Worker Bot' }], format: 'armored', config: pgpConfig });
+  const keys = await openpgp.generateKey({ type: 'ecc', curve: 'curve25519Legacy', userIDs: [{ name: process.env.BOT_NAME || 'Madmail Bot' }], format: 'armored', config: pgpConfig });
   state = {
     WEBIMAP_HOSTNAME: hostname, EMAIL_USERNAME: account.email, EMAIL_PASSWORD: account.password,
     BOT_PRIVATE_KEY: keys.privateKey, BOT_PUBLIC_KEY: keys.publicKey,
@@ -32,9 +33,11 @@ else {
   console.log('Created random Chatmail account and OpenPGP identity.');
 }
 async function save() { await Bun.write(statePath, JSON.stringify(state, null, 2)); chmodSync(statePath, 0o600); }
+await configureProfile(state);
+await save();
 const password = `securejoin/${state.CONTACT.fingerprint}/${state.CONTACT.auth}`;
 if (state.stage === 'created') {
-  const request = await encryptedMail({ from: state.EMAIL_USERNAME, contact: state.CONTACT, text: 'Secure-Join', password,
+  const request = await encryptedMail({ from: state.EMAIL_USERNAME, botName: state.BOT_NAME, botLogo: state.BOT_LOGO, contact: state.CONTACT, text: 'Secure-Join', password,
     extraHeaders: { 'Secure-Join': 'vc-request-pubkey', 'Secure-Join-Auth': state.CONTACT.auth } });
   await submit(state, state.CONTACT, request.raw);
   state.stage = 'requested-key'; await save();
@@ -42,7 +45,7 @@ if (state.stage === 'created') {
 }
 if (process.argv.includes('--legacy') && state.stage === 'requested-key' && !state.legacyRequested) {
   const raw = [
-    `From: Worker Bot <${state.EMAIL_USERNAME}>`, `To: <${state.CONTACT.email}>`,
+    `From: =?UTF-8?B?${Buffer.from(state.BOT_NAME).toString('base64')}?= <${state.EMAIL_USERNAME}>`, `To: <${state.CONTACT.email}>`,
     `Date: ${new Date().toUTCString()}`, `Message-ID: <${crypto.randomUUID()}@${state.EMAIL_USERNAME.split('@')[1]}>`,
     'Subject: Secure-Join', 'Chat-Version: 1.0', 'Auto-Submitted: auto-generated',
     'Secure-Join: vc-request', `Secure-Join-Invitenumber: ${state.CONTACT.inviteNumber}`,
@@ -72,7 +75,7 @@ while (Date.now() < deadline && state.stage !== 'verified') {
       if (!['vc-pubkey', 'vc-auth-required'].includes(checked.inner.headers.find(h => h.key === 'secure-join')?.value ?? '')) throw new Error('Expected signed public-key response');
       state.CONTACT.publicKey = key.armor();
       const ownKey = await openpgp.readKey({ armoredKey: state.BOT_PUBLIC_KEY });
-      const auth = await encryptedMail({ from: state.EMAIL_USERNAME, contact: state.CONTACT, text: 'Secure-Join: vc-request-with-auth', privateKey: state.BOT_PRIVATE_KEY, publicKey: state.BOT_PUBLIC_KEY,
+      const auth = await encryptedMail({ from: state.EMAIL_USERNAME, botName: state.BOT_NAME, botLogo: state.BOT_LOGO, contact: state.CONTACT, text: 'Secure-Join: vc-request-with-auth', privateKey: state.BOT_PRIVATE_KEY, publicKey: state.BOT_PUBLIC_KEY,
         extraHeaders: { 'Secure-Join': 'vc-request-with-auth', 'Secure-Join-Auth': state.CONTACT.auth, 'Secure-Join-Fingerprint': ownKey.getFingerprint().toUpperCase() } });
       await submit(state, state.CONTACT, auth.raw);
       state.stage = 'requested-auth';

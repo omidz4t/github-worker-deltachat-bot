@@ -37,7 +37,7 @@ bun run deploy
 
 The Worker uses a verified TLS socket for IP-literal HTTPS destinations because Cloudflare fetch cannot call IP addresses directly. DNS hostnames use standard fetch.
 
-The upload script sets nine Cloudflare secrets: `WEBIMAP_HOSTNAME`, `EMAIL_USERNAME`, `EMAIL_PASSWORD`, `BOT_PRIVATE_KEY`, `BOT_PUBLIC_KEY`, `CONTACT`, `API_TOKEN`, `GITHUB_WEBHOOK_SECRET`, and `CHANNEL_CONFIG`. The contact secret includes the expected fingerprint, invitation credentials, pinned public key, and verification status. Temporary upload data is deleted after upload. Rerun the upload after the handshake completes to persist the verified contact.
+The upload script sets thirteen Cloudflare secrets: `WEBIMAP_HOSTNAME`, `EMAIL_USERNAME`, `EMAIL_PASSWORD`, `BOT_PRIVATE_KEY`, `BOT_PUBLIC_KEY`, `CONTACT`, `API_TOKEN`, `GITHUB_WEBHOOK_SECRET`, `CHANNEL_CONFIG`, `BOT_NAME`, `CHANNEL_NAME`, `BOT_LOGO`, and `CHANNEL_LOGO`. The contact secret includes the expected fingerprint, invitation credentials, pinned public key, and verification status. Temporary upload data is deleted after upload. Rerun the upload after the handshake completes to persist the verified contact.
 
 Send a message through the deployed API without printing the API token:
 
@@ -80,3 +80,37 @@ The endpoint verifies `X-Hub-Signature-256` against the exact request bytes usin
 ## GitHub Pages
 
 The public project site is plain HTML/CSS in `docs/`. GitHub Pages publishes `main` → `/docs`; `.nojekyll` keeps it build-free. The page contains no account credentials, invitation links, or API tokens.
+
+## License
+
+[MIT](LICENSE) © 2026 Omid (omidz4t).
+
+## Bot and channel profiles
+
+Set these in your ignored `.env` before setup or a profile update:
+
+```dotenv
+BOT_NAME="Madmail Bot"
+CHANNEL_NAME="Madmail GitHub"
+BOT_LOGO="https://madmail.chat/favicon.png"
+CHANNEL_LOGO="https://madmail.chat/favicon.png"
+```
+
+The logos can be HTTPS URLs or local PNG/JPEG paths (maximum 20 KiB each). Defaults use the official Madmail icon. Setup downloads/reads each logo once and stores the actual image as base64 in the `BOT_LOGO` and `CHANNEL_LOGO` Cloudflare secrets. The Worker does not fetch an image for each notification. Names are stored as `BOT_NAME` and `CHANNEL_NAME` secrets. Profile images travel inside signed, encrypted `Chat-User-Avatar` and `Chat-Group-Avatar` headers.
+
+To update an existing bot/channel without replacing its keys, channel ID, invitation credentials, or subscribers:
+
+```sh
+bun run scripts/create-channel.ts
+bun run scripts/push-secrets.ts
+bun run deploy
+bun run channel poll
+```
+
+The next inbox/alarm pass sends profile updates to existing subscribers. Future messages and new subscriptions include the current profile. Keep local logo files inside an ignored directory such as `secrets/`.
+
+## Automated releases
+
+Use [Conventional Commits](https://www.conventionalcommits.org/): `feat:` creates a minor release; `fix:`, `perf:`, and `revert:` create a patch release. A `!` in the header or a `BREAKING CHANGE:` footer creates a major release. Documentation and maintenance commits do not release on their own.
+
+On pushes to `main`, GitHub Actions installs locked dependencies, type-checks, and runs tests. After checks pass, it updates `package.json`, pushes an unsigned `chore(release): vX.Y.Z` commit and version tag atomically, then publishes a GitHub release with generated notes. Releases use the built-in GitHub token; no signing key or Cloudflare credentials are needed. The workflow can also be run manually to recover an interrupted release. Pull requests only run checks.

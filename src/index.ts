@@ -6,6 +6,10 @@ import { encryptedMail, submit, type Contact, type MailConfig } from './chatmail
 export interface ChatmailEnv extends MailConfig {
   BOT_PRIVATE_KEY: string;
   BOT_PUBLIC_KEY: string;
+  BOT_NAME?: string;
+  BOT_LOGO?: string;
+  CHANNEL_NAME?: string;
+  CHANNEL_LOGO?: string;
   CONTACT: string;
   API_TOKEN: string;
   GITHUB_WEBHOOK_SECRET: string;
@@ -41,7 +45,7 @@ export default {
     try {
       const contact = JSON.parse(env.CONTACT) as Contact;
       if (!contact.verified || !contact.publicKey) return Response.json({ error: 'Contact handshake is incomplete' }, { status: 409 });
-      const message = await encryptedMail({ from: env.EMAIL_USERNAME, contact, text, privateKey: env.BOT_PRIVATE_KEY, publicKey: env.BOT_PUBLIC_KEY });
+      const message = await encryptedMail({ from: env.EMAIL_USERNAME, contact, text, botName: env.BOT_NAME, botLogo: env.BOT_LOGO, privateKey: env.BOT_PRIVATE_KEY, publicKey: env.BOT_PUBLIC_KEY });
       await submit(env, contact, message.raw, webimapFetch);
       return Response.json({ status: 'submitted', messageId: message.id });
     } catch (error) {

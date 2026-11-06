@@ -59,5 +59,16 @@ describe('Delta Chat broadcast protocol', () => {
       extraHeaders: { 'Secure-Join': 'vc-request-with-auth', 'Secure-Join-Auth': 'wrong', 'Secure-Join-Fingerprint': peerKey.getFingerprint().toUpperCase() } });
     inbox.push({ uid: 3, body: wrong.raw }); await actor.alarm();
     expect(sent).toHaveLength(3);
+    env.BOT_NAME = 'Renamed bot'; env.CHANNEL_NAME = 'Renamed channel';
+    env.BOT_LOGO = 'iVBORw0KGgo='; env.CHANNEL_LOGO = '/9j/';
+    const updated = new Channel({ storage } as unknown as DurableObjectState, env);
+    await updated.alarm(); await updated.alarm();
+    expect(sent).toHaveLength(4);
+    const profile = await decryptMail(sent[3], { privateKey: peer.privateKey, publicKey: bot.publicKey });
+    expect(profile.inner.from?.name).toBe('Renamed bot');
+    expect(profile.inner.headers.find(h => h.key === 'chat-user-avatar')?.value).toBe('base64:iVBORw0KGgo=');
+    expect(profile.inner.headers.find(h => h.key === 'chat-group-avatar')?.value).toBe('base64:/9j/');
+    expect(profile.inner.headers.find(h => h.key === 'chat-list-id')?.value).toBe(`Renamed channel <${config.id}>`);
+    expect((await storage.list({ prefix: 'subscriber:' })).size).toBe(1);
   });
 });

@@ -1,3 +1,4 @@
+import { avatarHeader, profileName } from './profile';
 import * as openpgp from 'openpgp';
 import { readToEnd } from '@openpgp/web-stream-tools';
 import PostalMime from 'postal-mime';
@@ -67,19 +68,22 @@ export async function encryptSecureJoin(text: string, password: string, privateK
 
 export async function encryptedMail(options: {
   from: string; contact: Contact; text: string; privateKey?: string; publicKey?: string;
+  botName?: string; botLogo?: string;
   password?: string; hideRecipients?: boolean; extraHeaders?: Record<string, string>;
 }): Promise<{ id: string; raw: string }> {
   const { from, contact, text, privateKey, publicKey, password, hideRecipients, extraHeaders = {} } = options;
+  const displayName = '=?UTF-8?B?' + base64(new TextEncoder().encode(profileName(options.botName ?? '', 'Madmail Bot'))) + '?=';
   const id = `${crypto.randomUUID()}@${from.split('@')[1]}`;
   const innerHeaders = [
-    `From: Worker Bot <${header(from)}>`, hideRecipients ? 'To: "hidden-recipients": ;' : `To: <${header(contact.email)}>`,
+    `From: ${displayName} <${header(from)}>`, hideRecipients ? 'To: "hidden-recipients": ;' : `To: <${header(contact.email)}>`,
     `Date: ${new Date().toUTCString()}`, `Message-ID: <${id}>`, 'Subject: Message', 'Chat-Version: 1.0', 'Auto-Submitted: auto-generated',
     ...Object.entries(extraHeaders).map(([key, value]) => `${header(key)}: ${header(value)}`),
   ];
+  if (options.botLogo && privateKey) innerHeaders.push(`Chat-User-Avatar: ${avatarHeader(options.botLogo)}`);
   if (publicKey) innerHeaders.push(await autocrypt(from, publicKey));
   if (!password && publicKey && contact.publicKey) innerHeaders.push(await autocrypt(contact.email, contact.publicKey, 'Autocrypt-Gossip'), await autocrypt(from, publicKey, 'Autocrypt-Gossip'));
   innerHeaders.push('MIME-Version: 1.0', 'Content-Type: text/plain; charset=utf-8; protected-headers="v1"', 'Content-Transfer-Encoding: base64');
-  const inner = `${innerHeaders.join('\r\n')}\r\n\r\n${base64(new TextEncoder().encode(text)).match(/.{1,76}/g)?.join('\r\n') ?? ''}\r\n`;
+  const inner = `${innerHeaders.map(line => line.startsWith('Chat-User-Avatar: base64:') || line.startsWith('Chat-Group-Avatar: base64:') ? line.slice(0, line.indexOf('base64:') + 7) + line.slice(line.indexOf('base64:') + 7).match(/.{1,72}/g)!.join('\r\n ') : line).join('\r\n')}\r\n\r\n${base64(new TextEncoder().encode(text)).match(/.{1,76}/g)?.join('\r\n') ?? ''}\r\n`;
   const signingKeys = privateKey ? await openpgp.readPrivateKey({ armoredKey: privateKey }) : undefined;
   const encrypted = password ? await encryptSecureJoin(inner, password, privateKey) : await openpgp.encrypt({
     message: await openpgp.createMessage({ text: inner }),
@@ -88,7 +92,7 @@ export async function encryptedMail(options: {
   });
   const boundary = `=_${crypto.randomUUID()}`;
   const outerHeaders = [
-    `From: Worker Bot <${header(from)}>`, hideRecipients ? 'To: "hidden-recipients": ;' : `To: <${header(contact.email)}>`,
+    `From: ${displayName} <${header(from)}>`, hideRecipients ? 'To: "hidden-recipients": ;' : `To: <${header(contact.email)}>`,
     `Date: ${new Date().toUTCString()}`, `Message-ID: <${id}>`, 'Subject: ...',
     'Chat-Version: 1.0', 'Auto-Submitted: auto-generated',
     ...(publicKey ? [await autocrypt(from, publicKey)] : []),

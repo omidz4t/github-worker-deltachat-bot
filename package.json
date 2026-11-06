@@ -25,5 +25,6 @@
     "openpgp": "^6.3.2",
     "postal-mime": "^4.2.0",
     "@openpgp/web-stream-tools": "^0.3.1"
-  }
+  },
+  "license": "MIT"
 }

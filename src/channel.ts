@@ -1,3 +1,4 @@
+import { avatarHeader } from './profile';
 import * as openpgp from 'openpgp';
 import PostalMime, { type Email } from 'postal-mime';
 import { decryptMail, encryptedMail, mailRequest, submit, type Contact } from './chatmail';
@@ -6,7 +7,7 @@ import type { ChatmailEnv } from './index';
 
 export interface ChannelConfig {
   id: string; name: string; secret: string; auth: string; inviteNumber: string;
-  fingerprint: string; sinceUid: number; inviteUrl: string;
+  nameUpdatedAt?: number; fingerprint: string; sinceUid: number; inviteUrl: string;
 }
 interface Job { text: string; created: number; status: 'queued' | 'sent'; raw?: string; recipients?: string[]; sent?: string[] }
 const h = (email: Email, name: string) => email.headers.find(header => header.key === name)?.value;
@@ -15,6 +16,7 @@ export class Channel {
   private config: ChannelConfig;
   constructor(private ctx: DurableObjectState, private env: ChatmailEnv) {
     this.config = JSON.parse(env.CHANNEL_CONFIG);
+    this.config.name = env.CHANNEL_NAME || this.config.name;
     if (!this.config.id || !this.config.secret || !this.config.inviteUrl) throw new Error('Invalid channel configuration');
   }
   async fetch(request: Request): Promise<Response> {
@@ -53,6 +55,7 @@ export class Channel {
   async alarm(): Promise<void> {
     try {
       await this.poll();
+      await this.syncProfile();
       const jobs = await this.ctx.storage.list<Job>({ prefix: 'job:' });
       let count = 0;
       for (const [key, job] of jobs) {
@@ -65,7 +68,7 @@ export class Channel {
         if (!job.raw) {
           const first = subscribers.values().next().value;
           if (!first) continue;
-          const message = await encryptedMail({ from: this.env.EMAIL_USERNAME, contact: first, text: job.text,
+          const message = await encryptedMail({ from: this.env.EMAIL_USERNAME, botName: this.env.BOT_NAME, botLogo: this.env.BOT_LOGO, contact: first, text: job.text,
             privateKey: this.env.BOT_PRIVATE_KEY, publicKey: this.env.BOT_PUBLIC_KEY,
             password: this.config.secret, hideRecipients: true, extraHeaders: this.channelHeaders() });
           job.raw = message.raw; job.recipients = [...subscribers.keys()]; job.sent = [];
@@ -87,16 +90,30 @@ export class Channel {
     }
   }
   private channelHeaders(): Record<string, string> {
-    return { 'Chat-List-ID': `${this.config.name} <${this.config.id}>`, 'Chat-Group-Name': this.config.name };
+    return { 'Chat-List-ID': `${this.config.name} <${this.config.id}>`, 'Chat-Group-Name': this.config.name, 'Chat-Group-Name-Timestamp': String(this.config.nameUpdatedAt ?? 0), ...(this.env.CHANNEL_LOGO ? { 'Chat-Group-Avatar': avatarHeader(this.env.CHANNEL_LOGO) } : {}) };
   }
   private async addSubscriber(contact: Contact) {
-    const message = await encryptedMail({ from: this.env.EMAIL_USERNAME, contact, text: `You joined ${this.config.name}.`,
+    const message = await encryptedMail({ from: this.env.EMAIL_USERNAME, botName: this.env.BOT_NAME, botLogo: this.env.BOT_LOGO, contact, text: `You joined ${this.config.name}.`,
       privateKey: this.env.BOT_PRIVATE_KEY, publicKey: this.env.BOT_PUBLIC_KEY,
       extraHeaders: { ...this.channelHeaders(), 'Chat-Broadcast-Secret': this.config.secret,
         'Chat-Group-Member-Added': contact.email, 'Chat-Group-Member-Added-Fpr': contact.fingerprint, 'Secure-Join': 'vg-member-added' } });
     await submit(this.env, contact, message.raw, webimapFetch);
     await this.ctx.storage.put(`subscriber:${contact.fingerprint}`, contact);
     for (const raw of await this.ctx.storage.get<string[]>('history') ?? []) await submit(this.env, contact, raw, webimapFetch);
+  }
+  private async syncProfile() {
+    if (!this.env.BOT_NAME && !this.env.BOT_LOGO && !this.env.CHANNEL_NAME && !this.env.CHANNEL_LOGO) return;
+    const revision = Array.from(new Uint8Array(await crypto.subtle.digest('SHA-256', new TextEncoder().encode(JSON.stringify([this.env.BOT_NAME, this.env.BOT_LOGO, this.config.name, this.env.CHANNEL_LOGO])))), b => b.toString(16).padStart(2, '0')).join('');
+    const contacts = await this.ctx.storage.list<Contact>({ prefix: 'subscriber:' });
+    for (const contact of contacts.values()) {
+      const key = `profile:${contact.fingerprint}`;
+      if (await this.ctx.storage.get(key) === revision) continue;
+      const message = await encryptedMail({ from: this.env.EMAIL_USERNAME, botName: this.env.BOT_NAME, botLogo: this.env.BOT_LOGO, contact,
+        text: `${this.config.name} channel profile updated.`, privateKey: this.env.BOT_PRIVATE_KEY, publicKey: this.env.BOT_PUBLIC_KEY,
+        extraHeaders: { ...this.channelHeaders(), 'Chat-Content': 'group-avatar-changed' } });
+      await submit(this.env, contact, message.raw, webimapFetch);
+      await this.ctx.storage.put(key, revision);
+    }
   }
   private async publicKey(email: Email): Promise<openpgp.PublicKey | undefined> {
     const data = h(email, 'autocrypt')?.match(/keydata\s*=\s*([\s\S]+)/i)?.[1].replace(/\s/g, '');
@@ -132,7 +149,7 @@ export class Channel {
     if (!email || /[\r\n]/.test(email)) return;
     const contact: Contact = { email, name: inner.from?.name ?? '', fingerprint: '', auth: '', inviteNumber: '' };
     if (step === 'vc-request-pubkey' && mode.password && h(inner, 'secure-join-auth') === this.config.auth) {
-      const message = await encryptedMail({ from: this.env.EMAIL_USERNAME, contact, text: 'Secure-Join', password: shared,
+      const message = await encryptedMail({ from: this.env.EMAIL_USERNAME, botName: this.env.BOT_NAME, botLogo: this.env.BOT_LOGO, contact, text: 'Secure-Join', password: shared,
         privateKey: this.env.BOT_PRIVATE_KEY, publicKey: this.env.BOT_PUBLIC_KEY,
         extraHeaders: { 'Secure-Join': 'vc-pubkey', 'Secure-Join-Auth': this.config.auth } });
       await this.deliver(contact, message.raw); return;
@@ -140,7 +157,7 @@ export class Channel {
     if (['vc-request', 'vg-request'].includes(step ?? '') && h(inner, 'secure-join-invitenumber') === this.config.inviteNumber) {
       const key = await this.publicKey(inner); if (!key) return;
       contact.publicKey = key.armor(); contact.fingerprint = key.getFingerprint().toUpperCase();
-      const message = await encryptedMail({ from: this.env.EMAIL_USERNAME, contact, text: 'Secure-Join: vc-auth-required',
+      const message = await encryptedMail({ from: this.env.EMAIL_USERNAME, botName: this.env.BOT_NAME, botLogo: this.env.BOT_LOGO, contact, text: 'Secure-Join: vc-auth-required',
         privateKey: this.env.BOT_PRIVATE_KEY, publicKey: this.env.BOT_PUBLIC_KEY, extraHeaders: { 'Secure-Join': 'vc-auth-required' } });
       await this.deliver(contact, message.raw); return;
     }
