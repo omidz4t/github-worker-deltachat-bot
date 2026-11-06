@@ -1,0 +1,29 @@
+{
+  "name": "github-worker-deltachat-bot",
+  "version": "0.0.0",
+  "private": true,
+  "scripts": {
+    "deploy": "wrangler deploy",
+    "dev": "wrangler dev",
+    "start": "wrangler dev",
+    "test": "vitest",
+    "typecheck": "tsc --noEmit",
+    "cf-typegen": "wrangler types",
+    "chatmail:setup": "bun run scripts/setup-chatmail.ts",
+    "send": "bun run scripts/send-message.ts",
+    "channel": "bun run scripts/channel-admin.ts",
+    "webhook:test": "bun run scripts/test-webhook.ts"
+  },
+  "devDependencies": {
+    "@cloudflare/vitest-plugin": "^1.4.3",
+    "typescript": "^5.5.2",
+    "vitest": "~5.0.3",
+    "wrangler": "^4"
+  },
+  "packageManager": "bun@1.4.2",
+  "dependencies": {
+    "openpgp": "^6.3.2",
+    "postal-mime": "^4.2.0",
+    "@openpgp/web-stream-tools": "^0.3.1"
+  }
+}

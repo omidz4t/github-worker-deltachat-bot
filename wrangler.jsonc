@@ -1,0 +1,13 @@
+{
+	"$schema": "node_modules/wrangler/config-schema.json",
+	"name": "github-worker-deltachat-bot",
+	"main": "src/index.ts",
+	"compatibility_date": "2026-11-06",
+	"vars": { "GITHUB_REPOSITORY": "themadorg/madmail" },
+	"durable_objects": { "bindings": [{ "name": "NOTIFICATIONS", "class_name": "Channel" }] },
+	"migrations": [{ "tag": "v1", "new_sqlite_classes": ["Channel"] }],
+	"triggers": { "crons": ["* * * * *"] },
+	"observability": {
+		"enabled": true,
+	},
+}

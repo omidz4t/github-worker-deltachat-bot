@@ -1,0 +1,60 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="description" content="A Cloudflare Worker that brings GitHub activity into an encrypted Delta Chat channel.">
+  <meta name="theme-color" content="#101819">
+  <title>GitHub → Delta Chat · Encrypted project updates</title>
+  <style>
+    :root{color-scheme:dark;--bg:#101819;--panel:#192425;--line:#334344;--text:#edf4ed;--muted:#b0c0ba;--mint:#bceca0;--orange:#ffb276}
+    *{box-sizing:border-box}body{margin:0;background:var(--bg);color:var(--text);font:16px/1.65 system-ui,-apple-system,BlinkMacSystemFont,"Segoe UI",sans-serif}a{color:inherit;text-underline-offset:4px}a:hover{color:var(--mint)}a:focus-visible{outline:3px solid var(--orange);outline-offset:6px}main,header,footer{width:min(1100px,calc(100% - 48px));margin:auto}header{display:flex;align-items:center;justify-content:space-between;padding:28px 0;border-bottom:1px solid var(--line)}.brand{font-weight:750;letter-spacing:-.04em;font-size:21px;text-decoration:none}.brand span{color:var(--mint)}nav{display:flex;gap:24px;font-size:14px}nav a{text-decoration:none}.hero{display:grid;grid-template-columns:1.1fr 1fr;gap:70px;align-items:center;padding:95px 0 85px}.eyebrow{color:var(--mint);font-size:12px;font-weight:700;letter-spacing:.13em;text-transform:uppercase}h1{font-size:clamp(42px,5.6vw,70px);line-height:1.06;letter-spacing:-.065em;margin:21px 0 26px;font-weight:720}h1 em{font-style:normal;color:var(--mint)}.intro{color:var(--muted);max-width:480px;font-size:18px}.actions{display:flex;flex-wrap:wrap;gap:14px;margin-top:32px}.button{display:inline-block;text-decoration:none;padding:12px 20px;border:1px solid var(--line);border-radius:5px;font-weight:650;font-size:14px}.button.primary{background:var(--mint);border-color:var(--mint);color:var(--bg)}.button:hover{border-color:var(--mint)}.demo{border:1px solid var(--line);background:var(--panel);border-radius:12px;overflow:hidden;box-shadow:12px 12px 0 #0b1213}.demo-head{padding:18px 23px;border-bottom:1px solid var(--line);display:flex;justify-content:space-between;font-size:13px}.lock{color:var(--mint);font-size:11px}.chat{padding:28px 23px}.chat-label{color:var(--muted);font-size:11px;letter-spacing:.1em;text-transform:uppercase}.bubble{margin-top:17px;padding:21px;background:#263834;border-radius:0 12px 12px 12px;border-left:3px solid var(--mint);font-size:14px}.bubble strong{display:block;color:var(--mint);margin-bottom:9px}.bubble p{margin:6px 0}.bubble code{color:var(--orange)}.time{text-align:right;font-size:11px;color:var(--muted);margin-top:15px}.demo-foot{padding:14px 23px;background:#141f20;color:var(--muted);font-size:11px}.flow{padding:24px 0;display:flex;justify-content:space-between;gap:16px;border-top:1px solid var(--line);border-bottom:1px solid var(--line);font:13px ui-monospace,monospace;color:var(--muted)}.flow span{color:var(--mint)}section{padding:64px 0;border-bottom:1px solid var(--line)}h2{font-size:32px;letter-spacing:-.045em;line-height:1.2;margin:0 0 14px}h3{font-size:17px;margin:0 0 9px}.section-lead{color:var(--muted);max-width:640px}.features{display:grid;grid-template-columns:repeat(3,1fr);gap:36px;margin-top:35px}.features p,.steps p{color:var(--muted);font-size:14px;margin:0}.number{font:12px ui-monospace,monospace;color:var(--orange);margin-bottom:17px}.steps{display:grid;grid-template-columns:repeat(3,1fr);gap:35px;margin:35px 0}.code{padding:20px;background:var(--panel);border:1px solid var(--line);border-radius:6px;font:13px/1.8 ui-monospace,SFMono-Regular,Consolas,monospace;overflow:auto;white-space:pre-wrap;overflow-wrap:anywhere}.note{font-size:13px;color:var(--muted)}footer{padding:28px 0 38px;display:flex;justify-content:space-between;gap:20px;font-size:12px;color:var(--muted)}.skip{position:absolute;left:16px;top:-60px;background:var(--mint);color:var(--bg);padding:8px}.skip:focus{top:12px}@media(max-width:780px){.hero{grid-template-columns:1fr;padding:58px 0;gap:42px}.features,.steps{grid-template-columns:1fr;gap:27px}.flow{flex-wrap:wrap;justify-content:flex-start;font-size:11px;gap:10px}section{padding:45px 0}footer{flex-direction:column}nav{gap:14px}main,header,footer{width:calc(100% - 36px)}}
+  </style>
+</head>
+<body>
+<a class="skip" href="#main">Skip to content</a>
+<header>
+  <a class="brand" href="./">git<span>→</span>chat</a>
+  <nav aria-label="Main navigation"><a href="#setup">Get started</a><a href="https://github.com/omidz4t/github-worker-deltachat-bot">GitHub ↗</a></nav>
+</header>
+<main id="main">
+  <div class="hero">
+    <div>
+      <div class="eyebrow">GitHub events. Encrypted conversations.</div>
+      <h1>Your project moves.<br><em>Your chat knows.</em></h1>
+      <p class="intro">Bring commits, pull requests, issues, and releases into a Delta Chat channel. A small Cloudflare Worker connects the two.</p>
+      <div class="actions"><a class="button primary" href="https://github.com/omidz4t/github-worker-deltachat-bot">Explore the source ↗</a><a class="button" href="#setup">Set up your own</a></div>
+    </div>
+    <div class="demo" aria-label="Example encrypted notification">
+      <div class="demo-head"><strong>Project updates</strong><span class="lock">ENCRYPTED CHANNEL</span></div>
+      <div class="chat"><div class="chat-label">Example notification</div><div class="bubble"><strong>[your-org/project] push</strong><p>A contributor pushed 2 commits to main</p><p><code>a81d5f0</code> Improve message delivery<br><code>c42b9e1</code> Update documentation</p><p>github.com/your-org/project</p><div class="time">just now</div></div></div>
+      <div class="demo-foot">Signed with OpenPGP · Delivered through WebSMTP</div>
+    </div>
+  </div>
+  <div class="flow" aria-label="Notification flow">GitHub event <span>→</span> Signed webhook <span>→</span> Cloudflare Worker <span>→</span> Delta Chat channel</div>
+  <section aria-labelledby="built-for">
+    <h2 id="built-for">Stay in the conversation.</h2>
+    <p class="section-lead">Follow the work from the messenger you already use.</p>
+    <div class="features">
+      <div><div class="number">01 / VERIFIED</div><h3>Trust the source</h3><p>HMAC-SHA256 validates GitHub deliveries. A repository allowlist keeps notifications focused on your project.</p></div>
+      <div><div class="number">02 / ENCRYPTED</div><h3>Keep updates private</h3><p>OpenPGP.js signs and encrypts channel messages. Subscribers cannot see one another’s addresses.</p></div>
+      <div><div class="number">03 / PERSISTENT</div><h3>Keep the queue moving</h3><p>A Durable Object stores pending notifications, retries failed submissions, and deduplicates GitHub delivery IDs.</p></div>
+    </div>
+  </section>
+  <section id="setup" aria-labelledby="setup-title">
+    <div class="eyebrow">Run it yourself</div><h2 id="setup-title">A small bridge. Your own channel.</h2>
+    <div class="steps">
+      <div><div class="number">01</div><h3>Configure the Worker</h3><p>Clone the repository, install with Bun, and follow the README to configure your WebIMAP server and contact invitation locally.</p></div>
+      <div><div class="number">02</div><h3>Create your channel</h3><p>Generate the channel configuration and signing secret. Upload credentials to Cloudflare secrets, then deploy the Worker.</p></div>
+      <div><div class="number">03</div><h3>Connect GitHub</h3><p>Add a JSON webhook to your repository using your Worker URL and signing secret. Select the events you want to follow.</p></div>
+    </div>
+    <pre class="code"><code>git clone https://github.com/omidz4t/github-worker-deltachat-bot.git
+cd github-worker-deltachat-bot
+bun install</code></pre>
+    <p class="note">Account credentials, contact invitations, and signing secrets belong in local ignored files and Cloudflare secrets.</p>
+    <a class="button" href="https://github.com/omidz4t/github-worker-deltachat-bot#readme">Read the setup guide ↗</a>
+  </section>
+</main>
+<footer><span>Built with Bun, Cloudflare Workers, and OpenPGP.js.</span><span><a href="https://delta.chat/">Delta Chat</a> · <a href="https://madmail.chat/">Madmail</a> · <a href="https://github.com/omidz4t/github-worker-deltachat-bot">Source</a></span></footer>
+</body>
+</html>
